@@ -1,6 +1,6 @@
 {
     'name': 'Tc Dataflow Report',
-    'summary': "Quản lý tồn kho Thịnh Cường",
+    'summary': "Thịnh Cường Dataflow",
     'version': '1.0',
     'depends': ['base'],
     'installable': True,
