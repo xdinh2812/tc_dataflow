@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="import_data_page" name="Import Data Page">
+        <t t-call="website.layout">
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <div id="wrap" class="tc-import-data-page">
+                <div class="tc-import-layout">
+                    <aside class="tc-import-sidebar">
+                        <div class="tc-import-brand">
+                            <h2>FinData Suite</h2>
+                            <p>Financial Intelligence</p>
+                        </div>
+
+                        <nav class="tc-import-menu">
+                            <a href="#" class="active">Extraction</a>
+                            <a href="#">Processing</a>
+                            <a href="#">Approval</a>
+                            <a href="#">Data Editor</a>
+                            <a href="#">Report Designer</a>
+                            <a href="#">Report Viewer</a>
+                        </nav>
+                    </aside>
+
+                    <main class="tc-import-content">
+                        <header class="tc-import-header">
+                            <h1>Cấu hình Trích xuất</h1>
+                            <p>Quản lý và theo dõi trạng thái trích xuất dữ liệu tài chính theo từng danh mục.</p>
+                        </header>
+
+                        <section class="tc-import-grid">
+                            <div class="tc-import-card tc-card-approved">
+                                <div>
+                                    <div class="tc-import-card-title-row">
+                                        <span class="tc-import-card-title">1. Doanh thu</span>
+                                        <span class="tc-import-badge">Đã duyệt</span>
+                                    </div>
+                                    <div class="tc-import-file">
+                                        <div class="tc-import-file-name">DT_2203.xlsx</div>
+                                        <div class="tc-import-file-meta">Uploaded 2h ago</div>
+                                    </div>
+                                </div>
+                                <div class="tc-import-actions">
+                                    <button type="button" class="tc-btn tc-btn-soft">Xem chi tiết</button>
+                                </div>
+                            </div>
+
+                            <div class="tc-import-card tc-card-pending">
+                                <div>
+                                    <div class="tc-import-card-title-row">
+                                        <span class="tc-import-card-title">2. Dòng tiền</span>
+                                        <span class="tc-import-badge">Chờ duyệt</span>
+                                    </div>
+                                    <div class="tc-import-note">Đang trong quá trình kiểm tra...</div>
+                                </div>
+                                <div class="tc-import-actions">
+                                    <button type="button" class="tc-btn tc-btn-primary">Tải lại (Ghi đè)</button>
+                                </div>
+                            </div>
+
+                            <div class="tc-import-card tc-card-rejected">
+                                <div>
+                                    <div class="tc-import-card-title-row">
+                                        <span class="tc-import-card-title">3. Phải thu</span>
+                                        <span class="tc-import-badge">Từ chối</span>
+                                    </div>
+                                    <div class="tc-import-error-box">Error: Sai định dạng số</div>
+                                </div>
+                                <div class="tc-import-actions-split">
+                                    <button type="button" class="tc-btn tc-btn-ghost">Hủy</button>
+                                    <button type="button" class="tc-btn tc-btn-danger">Tải bản mới</button>
+                                </div>
+                            </div>
+
+                            <div class="tc-import-card tc-card-empty">
+                                <div class="tc-import-card-title-row">
+                                    <span class="tc-import-card-title">4. Chi phí</span>
+                                </div>
+                                <div class="tc-import-upload-body">
+                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
+                                    <div class="tc-import-upload-subtitle">Hoặc click để chọn tệp</div>
+                                </div>
+                                <div class="tc-import-actions">
+                                    <button type="button" class="tc-btn">Upload new</button>
+                                </div>
+                            </div>
+
+                            <div class="tc-import-card tc-card-empty">
+                                <div class="tc-import-card-title-row">
+                                    <span class="tc-import-card-title">5. Chi phí</span>
+                                </div>
+                                <div class="tc-import-upload-body">
+                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
+                                    <div class="tc-import-upload-subtitle">Hỗ trợ .xlsx, .csv</div>
+                                </div>
+                                <div class="tc-import-actions">
+                                    <button type="button" class="tc-btn">Upload new</button>
+                                </div>
+                            </div>
+
+                            <div class="tc-import-card tc-card-empty">
+                                <div class="tc-import-card-title-row">
+                                    <span class="tc-import-card-title">6. Chi thu</span>
+                                </div>
+                                <div class="tc-import-upload-body">
+                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
+                                    <div class="tc-import-upload-subtitle">Sẵn sàng nhận dữ liệu mới</div>
+                                </div>
+                                <div class="tc-import-actions">
+                                    <button type="button" class="tc-btn">Upload new</button>
+                                </div>
+                            </div>
+
+                            <div class="tc-import-card tc-card-empty">
+                                <div class="tc-import-card-title-row">
+                                    <span class="tc-import-card-title">7. Tồn kho</span>
+                                </div>
+                                <div class="tc-import-upload-body">
+                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
+                                    <div class="tc-import-upload-subtitle">Hệ thống sẽ tự động phân loại</div>
+                                </div>
+                                <div class="tc-import-actions">
+                                    <button type="button" class="tc-btn">Upload new</button>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>
