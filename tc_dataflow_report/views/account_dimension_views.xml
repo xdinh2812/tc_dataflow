@@ -65,19 +65,4 @@
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_account_dimension_search"/>
     </record>
-
-    <menuitem id="menu_tc_dataflow_root"
-              name="Dataflow"
-              sequence="10"/>
-
-    <menuitem id="menu_tc_dataflow_config"
-              name="Cấu hình"
-              parent="menu_tc_dataflow_root"
-              sequence="10"/>
-
-    <menuitem id="menu_account_dimension"
-              name="Chiều phân tích"
-              parent="menu_tc_dataflow_config"
-              action="action_account_dimension"
-              sequence="10"/>
 </odoo>

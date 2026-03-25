@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_account_financial_summary_tree" model="ir.ui.view">
+        <field name="name">account.financial.summary.tree</field>
+        <field name="model">account.financial.summary</field>
+        <field name="arch" type="xml">
+            <list string="Tổng hợp dữ liệu tài chính">
+                <field name="date"/>
+                <field name="data_type"/>
+                <field name="business_segment_id"/>
+                <field name="partner_id"/>
+                <field name="cost_center_id"/>
+                <field name="dimension_id"/>
+                <field name="item_name"/>
+                <field name="sub_item_name" optional="hide"/>
+                <field name="content" optional="hide"/>
+                <field name="in_system"/>
+                <field name="account_id"/>
+                <field name="currency_id"/>
+                <field name="amount"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_account_financial_summary_form" model="ir.ui.view">
+        <field name="name">account.financial.summary.form</field>
+        <field name="model">account.financial.summary</field>
+        <field name="arch" type="xml">
+            <form string="Tổng hợp dữ liệu tài chính">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="data_type"/>
+                            <field name="business_segment_id"/>
+                            <field name="partner_id"/>
+                            <field name="cost_center_id" domain="[('company_id', '=', company_id)]"/>
+                            <field name="dimension_id" domain="[('company_id', '=', company_id)]"/>
+                        </group>
+                        <group>
+                            <field name="item_name"/>
+                            <field name="sub_item_name"/>
+                            <field name="content"/>
+                            <field name="in_system"/>
+                            <field name="account_id" domain="[('company_ids', 'parent_of', company_id)]"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group>
+                            <field name="currency_id" required="1"/>
+                            <field name="amount"/>
+                        </group>
+                        <group>
+                            <field name="note"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_account_financial_summary_search" model="ir.ui.view">
+        <field name="name">account.financial.summary.search</field>
+        <field name="model">account.financial.summary</field>
+        <field name="arch" type="xml">
+            <search string="Tổng hợp dữ liệu tài chính">
+                <field name="business_segment_id"/>
+                <field name="partner_id"/>
+                <field name="cost_center_id"/>
+                <field name="dimension_id"/>
+                <field name="account_id"/>
+                <field name="item_name"/>
+                <filter name="filter_revenue" string="Doanh thu" domain="[('data_type', '=', 'revenue')]"/>
+                <filter name="filter_expense" string="Chi phí" domain="[('data_type', '=', 'expense')]"/>
+                <filter name="filter_business_result" string="Hiệu quả KD" domain="[('data_type', '=', 'business_result')]"/>
+                <filter name="filter_asset" string="Tài sản" domain="[('data_type', '=', 'asset')]"/>
+                <filter name="filter_in_system_yes" string="Có trên hệ thống" domain="[('in_system', '=', 'yes')]"/>
+                <filter name="filter_in_system_no" string="Không trên hệ thống" domain="[('in_system', '=', 'no')]"/>
+                <separator/>
+                <filter name="group_partner" string="Pháp nhân" context="{'group_by': 'partner_id'}"/>
+                <filter name="group_cost_center" string="Cost center" context="{'group_by': 'cost_center_id'}"/>
+                <filter name="group_type" string="Loại" context="{'group_by': 'data_type'}"/>
+                <filter name="group_dimension" string="Chiều phân tích" context="{'group_by': 'dimension_id'}"/>
+                <filter name="group_currency" string="Nguyên tệ" context="{'group_by': 'currency_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_account_financial_summary" model="ir.actions.act_window">
+        <field name="name">Tổng hợp dữ liệu tài chính</field>
+        <field name="res_model">account.financial.summary</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_account_financial_summary_search"/>
+    </record>
+
+</odoo>
+mmary_search"/>
+    </record>
+
+</odoo>
