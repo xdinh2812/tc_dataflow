@@ -19,14 +19,15 @@ class AccountFinancialSummary(models.Model):
         ('other', 'Khác'),
     ], string='Loại', default='revenue')
     dimension_id = fields.Many2one('account.dimension', 'Chiều phân tích')
-    item_name = fields.Char('Khoản mục')
-    sub_item_name = fields.Char('Tiểu mục')
+    accounting_item = fields.Char('Khoản mục')
+    sub_accounting_item = fields.Char('Tiểu mục')
     content = fields.Char('Nội dung')
     in_system = fields.Selection([
         ('yes', 'Có'),
         ('no', 'Không'),
     ], string='Có hay không trên hệ thống', default='yes')
     account_id = fields.Many2one('account.account', 'Tài khoản hạch toán')
+    offset_account_id = fields.Many2one('account.account', 'Tài khoản đối ứng')
     note = fields.Text('Ghi chú')
     currency_id = fields.Many2one(
         'res.currency', 'Nguyên tệ',

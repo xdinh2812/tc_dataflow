@@ -11,8 +11,8 @@
                 <field name="partner_id"/>
                 <field name="cost_center_id"/>
                 <field name="dimension_id"/>
-                <field name="item_name"/>
-                <field name="sub_item_name" optional="hide"/>
+                <field name="accounting_item"/>
+                <field name="sub_accounting_item" optional="hide"/>
                 <field name="content" optional="hide"/>
                 <field name="in_system"/>
                 <field name="account_id"/>
@@ -39,8 +39,8 @@
                             <field name="dimension_id" domain="[('company_id', '=', company_id)]"/>
                         </group>
                         <group>
-                            <field name="item_name"/>
-                            <field name="sub_item_name"/>
+                            <field name="accounting_item"/>
+                            <field name="sub_accounting_item"/>
                             <field name="content"/>
                             <field name="in_system"/>
                             <field name="account_id" domain="[('company_ids', 'parent_of', company_id)]"/>
@@ -73,7 +73,8 @@
                 <field name="cost_center_id"/>
                 <field name="dimension_id"/>
                 <field name="account_id"/>
-                <field name="item_name"/>
+                <field name="offset_account_id"/>
+                <field name="accounting_item"/>
                 <filter name="filter_revenue" string="Doanh thu" domain="[('data_type', '=', 'revenue')]"/>
                 <filter name="filter_expense" string="Chi phí" domain="[('data_type', '=', 'expense')]"/>
                 <filter name="filter_business_result" string="Hiệu quả KD" domain="[('data_type', '=', 'business_result')]"/>
@@ -95,6 +96,14 @@
         <field name="res_model">account.financial.summary</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_account_financial_summary_search"/>
+    </record>
+
+</odoo>
+mmary_search"/>
+    </record>
+
+</odoo>
+>
     </record>
 
 </odoo>
