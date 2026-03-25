@@ -1,132 +1,195 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <template id="import_data_page" name="Import Data Page">
-        <t t-call="website.layout">
-            <t t-set="no_header" t-value="True"/>
-            <t t-set="no_footer" t-value="True"/>
-            <div id="wrap" class="tc-import-data-page">
-                <div class="tc-import-layout">
-                    <aside class="tc-import-sidebar">
-                        <div class="tc-import-brand">
-                            <h2>FinData Suite</h2>
-                            <p>Financial Intelligence</p>
+    <template id="thinh_cuong_home_report" name="TC Financial Report Home">
+        <html lang="vi">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title><t t-esc="page_title"/></title>
+                <link rel="icon" type="image/png" href="/tc_dataflow_report/static/src/img/thinhcuong_logo_mark.png"/>
+                <link rel="stylesheet" type="text/css" href="/tc_dataflow_report/static/src/css/import_data.css"/>
+            </head>
+            <body class="tc-dashboard-body">
+                <div class="tc-dashboard-page">
+                    <div class="tc-dashboard-shell">
+                        <aside class="tc-dashboard-sidebar">
+                            <div class="tc-dashboard-brand">
+                                <h1><t t-esc="brand_name"/></h1>
+                                <button class="tc-dashboard-brand__alert" type="button" aria-label="Thông báo">
+                                    <span class="material-symbols-outlined">notifications</span>
+                                </button>
+                            </div>
+
+                            <nav class="tc-dashboard-nav">
+                                <a t-foreach="nav_items"
+                                   t-as="item"
+                                   href="#"
+                                   t-attf-class="tc-dashboard-nav__link {{ 'is-active' if item['active'] else '' }}">
+                                    <span class="material-symbols-outlined"><t t-esc="item['icon']"/></span>
+                                    <span><t t-esc="item['label']"/></span>
+                                </a>
+                            </nav>
+
+                            <section class="tc-dashboard-sidebar__section">
+                                <p class="tc-dashboard-sidebar__label">Cơ cấu tổ chức</p>
+                                <div class="tc-dashboard-filter-card">
+                                    <label t-foreach="org_filters" t-as="org" class="tc-dashboard-check">
+                                        <input type="checkbox" t-att-checked="'checked' if org['checked'] else None"/>
+                                        <span class="tc-dashboard-check__box"/>
+                                        <span><t t-esc="org['label']"/></span>
+                                    </label>
+                                </div>
+                            </section>
+
+                            <section class="tc-dashboard-sidebar__section">
+                                <p class="tc-dashboard-sidebar__label">Thời gian</p>
+                                <div class="tc-dashboard-date-card">
+                                    <input class="tc-dashboard-date-input" type="date" t-att-value="selected_date_input"/>
+                                </div>
+                            </section>
+
+                            <section class="tc-dashboard-sidebar__section">
+                                <p class="tc-dashboard-sidebar__label">Thời gian gần đây</p>
+                                <div class="tc-dashboard-timeline">
+                                    <article t-foreach="recent_days"
+                                             t-as="day"
+                                             t-attf-class="tc-dashboard-timeline__item {{ day['status_class'] }}">
+                                        <div class="tc-dashboard-timeline__row">
+                                            <strong><t t-esc="day['date']"/></strong>
+                                            <span><t t-esc="day['status']"/></span>
+                                        </div>
+                                        <p><t t-esc="day['note']"/></p>
+                                    </article>
+                                </div>
+                            </section>
+                        </aside>
+
+                        <div class="tc-dashboard-stage">
+                            <header class="tc-dashboard-topbar">
+                                <div class="tc-dashboard-user">
+                                    <div class="tc-dashboard-user__meta">
+                                        <strong><t t-esc="user_name"/></strong>
+                                        <span><t t-esc="user_role"/></span>
+                                    </div>
+                                    <div class="tc-dashboard-user__avatar">
+                                        <t t-esc="user_initials"/>
+                                    </div>
+                                </div>
+                            </header>
+
+                            <main class="tc-dashboard-main">
+                                <section class="tc-dashboard-header">
+                                    <div class="tc-dashboard-header__copy">
+                                        <h2><t t-esc="report_title"/></h2>
+                                        <div class="tc-dashboard-header__date">
+                                            <span>ngày thực hiện:</span>
+                                            <button type="button" class="tc-dashboard-date-chip">
+                                                <span class="material-symbols-outlined">calendar_today</span>
+                                                <t t-esc="selected_date_display"/>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" class="tc-dashboard-submit">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                        Gửi phê duyệt
+                                    </button>
+                                </section>
+
+                                <section class="tc-dashboard-tabs">
+                                    <button t-foreach="tabs"
+                                            t-as="tab"
+                                            type="button"
+                                            t-attf-class="tc-dashboard-tabs__item {{ 'is-active' if tab['active'] else '' }}">
+                                        <t t-esc="tab['label']"/>
+                                    </button>
+                                </section>
+
+                                <section class="tc-dashboard-panel">
+                                    <h3 class="tc-dashboard-panel__title">Uploaded Files List</h3>
+                                    <div class="tc-dashboard-table-wrap">
+                                        <table class="tc-dashboard-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>File</th>
+                                                    <th>Version</th>
+                                                    <th>Status</th>
+                                                    <th class="is-right">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="uploaded_files" t-as="file">
+                                                    <td class="is-strong"><t t-esc="file['name']"/></td>
+                                                    <td><t t-esc="file['version']"/></td>
+                                                    <td>
+                                                        <span t-attf-class="tc-dashboard-status {{ file['status_class'] }}">
+                                                            <span class="material-symbols-outlined"><t t-esc="file['status_icon']"/></span>
+                                                            <t t-esc="file['status']"/>
+                                                        </span>
+                                                    </td>
+                                                    <td class="is-right">
+                                                        <button type="button" class="tc-dashboard-table__action">
+                                                            <span class="material-symbols-outlined">visibility</span>
+                                                            <t t-esc="file['action_label']"/>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+
+                                <section class="tc-dashboard-dropzone">
+                                    <div class="tc-dashboard-dropzone__icon">
+                                        <span class="material-symbols-outlined">cloud_upload</span>
+                                    </div>
+                                    <strong>Drag &amp; Drop Excel File here or <span>Click to Browse</span></strong>
+                                    <p>Supported formats: .xls, .xlsx (Max 10MB)</p>
+                                    <button type="button" class="tc-dashboard-dropzone__button">Kiểm tra</button>
+                                </section>
+
+                                <section class="tc-dashboard-panel">
+                                    <h3 class="tc-dashboard-panel__title">Data Preview</h3>
+                                    <div class="tc-dashboard-table-wrap">
+                                        <table class="tc-dashboard-table tc-dashboard-table--preview">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Date</th>
+                                                    <th>Product</th>
+                                                    <th>Region</th>
+                                                    <th class="is-right">Sales</th>
+                                                    <th class="is-right">Profit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="preview_rows" t-as="row">
+                                                    <td class="is-strong"><t t-esc="row['id']"/></td>
+                                                    <td><t t-esc="row['date']"/></td>
+                                                    <td><t t-esc="row['product']"/></td>
+                                                    <td><t t-esc="row['region']"/></td>
+                                                    <td class="is-right is-strong"><t t-esc="row['sales']"/></td>
+                                                    <td class="is-right is-profit"><t t-esc="row['profit']"/></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+
+                                <section class="tc-dashboard-notes">
+                                    <h3>Ghi chú:</h3>
+                                    <div class="tc-dashboard-notes__list">
+                                        <div t-foreach="notes" t-as="note" class="tc-dashboard-notes__item">
+                                            <strong><t t-esc="note['label']"/></strong>
+                                            <a href="#"><t t-esc="note['link_text']"/></a>
+                                        </div>
+                                    </div>
+                                </section>
+                            </main>
                         </div>
-
-                        <nav class="tc-import-menu">
-                            <a href="#" class="active">Extraction</a>
-                            <a href="#">Processing</a>
-                            <a href="#">Approval</a>
-                            <a href="#">Data Editor</a>
-                            <a href="#">Report Designer</a>
-                            <a href="#">Report Viewer</a>
-                        </nav>
-                    </aside>
-
-                    <main class="tc-import-content">
-                        <header class="tc-import-header">
-                            <h1>Cấu hình Trích xuất</h1>
-                            <p>Quản lý và theo dõi trạng thái trích xuất dữ liệu tài chính theo từng danh mục.</p>
-                        </header>
-
-                        <section class="tc-import-grid">
-                            <div class="tc-import-card tc-card-approved">
-                                <div>
-                                    <div class="tc-import-card-title-row">
-                                        <span class="tc-import-card-title">1. Doanh thu</span>
-                                        <span class="tc-import-badge">Đã duyệt</span>
-                                    </div>
-                                    <div class="tc-import-file">
-                                        <div class="tc-import-file-name">DT_2203.xlsx</div>
-                                        <div class="tc-import-file-meta">Uploaded 2h ago</div>
-                                    </div>
-                                </div>
-                                <div class="tc-import-actions">
-                                    <button type="button" class="tc-btn tc-btn-soft">Xem chi tiết</button>
-                                </div>
-                            </div>
-
-                            <div class="tc-import-card tc-card-pending">
-                                <div>
-                                    <div class="tc-import-card-title-row">
-                                        <span class="tc-import-card-title">2. Dòng tiền</span>
-                                        <span class="tc-import-badge">Chờ duyệt</span>
-                                    </div>
-                                    <div class="tc-import-note">Đang trong quá trình kiểm tra...</div>
-                                </div>
-                                <div class="tc-import-actions">
-                                    <button type="button" class="tc-btn tc-btn-primary">Tải lại (Ghi đè)</button>
-                                </div>
-                            </div>
-
-                            <div class="tc-import-card tc-card-rejected">
-                                <div>
-                                    <div class="tc-import-card-title-row">
-                                        <span class="tc-import-card-title">3. Phải thu</span>
-                                        <span class="tc-import-badge">Từ chối</span>
-                                    </div>
-                                    <div class="tc-import-error-box">Error: Sai định dạng số</div>
-                                </div>
-                                <div class="tc-import-actions-split">
-                                    <button type="button" class="tc-btn tc-btn-ghost">Hủy</button>
-                                    <button type="button" class="tc-btn tc-btn-danger">Tải bản mới</button>
-                                </div>
-                            </div>
-
-                            <div class="tc-import-card tc-card-empty">
-                                <div class="tc-import-card-title-row">
-                                    <span class="tc-import-card-title">4. Chi phí</span>
-                                </div>
-                                <div class="tc-import-upload-body">
-                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
-                                    <div class="tc-import-upload-subtitle">Hoặc click để chọn tệp</div>
-                                </div>
-                                <div class="tc-import-actions">
-                                    <button type="button" class="tc-btn">Upload new</button>
-                                </div>
-                            </div>
-
-                            <div class="tc-import-card tc-card-empty">
-                                <div class="tc-import-card-title-row">
-                                    <span class="tc-import-card-title">5. Chi phí</span>
-                                </div>
-                                <div class="tc-import-upload-body">
-                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
-                                    <div class="tc-import-upload-subtitle">Hỗ trợ .xlsx, .csv</div>
-                                </div>
-                                <div class="tc-import-actions">
-                                    <button type="button" class="tc-btn">Upload new</button>
-                                </div>
-                            </div>
-
-                            <div class="tc-import-card tc-card-empty">
-                                <div class="tc-import-card-title-row">
-                                    <span class="tc-import-card-title">6. Chi thu</span>
-                                </div>
-                                <div class="tc-import-upload-body">
-                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
-                                    <div class="tc-import-upload-subtitle">Sẵn sàng nhận dữ liệu mới</div>
-                                </div>
-                                <div class="tc-import-actions">
-                                    <button type="button" class="tc-btn">Upload new</button>
-                                </div>
-                            </div>
-
-                            <div class="tc-import-card tc-card-empty">
-                                <div class="tc-import-card-title-row">
-                                    <span class="tc-import-card-title">7. Tồn kho</span>
-                                </div>
-                                <div class="tc-import-upload-body">
-                                    <div class="tc-import-upload-title">Kéo thả file Excel</div>
-                                    <div class="tc-import-upload-subtitle">Hệ thống sẽ tự động phân loại</div>
-                                </div>
-                                <div class="tc-import-actions">
-                                    <button type="button" class="tc-btn">Upload new</button>
-                                </div>
-                            </div>
-                        </section>
-                    </main>
+                    </div>
                 </div>
-            </div>
-        </t>
+            </body>
+        </html>
     </template>
 </odoo>

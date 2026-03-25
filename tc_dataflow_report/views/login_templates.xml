@@ -163,7 +163,7 @@
                 </div>
 
                 <input type="hidden" name="type" value="password"/>
-                <input type="hidden" name="redirect" t-att-value="redirect"/>
+                <input type="hidden" name="redirect" t-att-value="redirect or '/thinhcuong/home/report'"/>
             </form>
         </xpath>
     </template>

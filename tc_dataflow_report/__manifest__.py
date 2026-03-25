@@ -17,6 +17,9 @@
             'tc_dataflow_report/static/src/css/import_data.css',
             'tc_dataflow_report/static/src/css/login.css',
         ],
+        'website.assets_frontend': [
+            'tc_dataflow_report/static/src/css/import_data.css',
+        ],
     },
     'installable': True,
 }
