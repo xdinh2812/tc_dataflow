@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="thinh_cuong_temporary_report" name="TC Temporary Financial Report">
+        <t t-call="tc_dataflow_report.thinh_cuong_dashboard_layout">
+            <section class="tc-dashboard-page-heading tc-dashboard-page-heading--temporary">
+                <div class="tc-dashboard-page-heading__copy">
+                    <h2><t t-esc="report_title"/></h2>
+                    <p><t t-esc="report_subtitle"/></p>
+                </div>
+            </section>
+
+            <section class="tc-provisional">
+                <div class="tc-provisional-toolbar">
+                    <div class="tc-provisional-tabs">
+                        <a t-foreach="temporary_tabs"
+                           t-as="tab"
+                           t-att-href="tab['href']"
+                           t-attf-class="tc-provisional-tabs__item {{ 'is-active' if tab['active'] else '' }}">
+                            <t t-esc="tab['label']"/>
+                        </a>
+                    </div>
+
+                    <t t-if="provisional_tab == 'list'">
+                        <div class="tc-provisional-toolbar__actions">
+                            <label class="tc-provisional-search">
+                                <span class="material-symbols-outlined">search</span>
+                                <input type="search" t-att-placeholder="temporary_search_placeholder"/>
+                            </label>
+                            <a href="#" class="tc-provisional-submit">
+                                <span class="material-symbols-outlined">send</span>
+                                <t t-esc="temporary_submit_label"/>
+                            </a>
+                        </div>
+                    </t>
+                </div>
+
+                <t t-if="provisional_tab == 'list'">
+                    <section class="tc-provisional-panel">
+                        <div t-foreach="temporary_groups" t-as="group" class="tc-provisional-group">
+                            <div class="tc-provisional-group__title">
+                                <span class="material-symbols-outlined"><t t-esc="group['icon']"/></span>
+                                <span><t t-esc="group['name']"/></span>
+                            </div>
+
+                            <div class="tc-dashboard-table-wrap tc-dashboard-table-wrap--provisional">
+                                <table class="tc-dashboard-table tc-dashboard-table--provisional">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>TK Nợ</th>
+                                            <th>TK Có</th>
+                                            <th class="is-right">Số tiền phân bổ (VND)</th>
+                                            <th>Mô tả</th>
+                                            <th>Phiên bản</th>
+                                            <th>Ngày đáo</th>
+                                            <th class="is-right">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="group['rows']" t-as="row">
+                                            <td><t t-esc="row['id']"/></td>
+                                            <td class="is-strong"><t t-esc="row['debit']"/></td>
+                                            <td class="is-strong"><t t-esc="row['credit']"/></td>
+                                            <td class="is-right tc-provisional-amount"><t t-esc="row['amount']"/></td>
+                                            <td><t t-esc="row['description']"/></td>
+                                            <td><t t-esc="row['version']"/></td>
+                                            <td><t t-esc="row['due_date']"/></td>
+                                            <td class="is-right">
+                                                <button type="button" class="tc-dashboard-table__action">
+                                                    <span class="material-symbols-outlined">visibility</span>
+                                                    <t t-esc="row['action_label']"/>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tc-provisional-total">
+                            <span>Tổng cộng:</span>
+                            <strong><t t-esc="temporary_total"/></strong>
+                        </div>
+
+                        <div class="tc-provisional-footer">
+                            <span><t t-esc="temporary_total_records"/></span>
+                            <div class="tc-provisional-pagination">
+                                <button type="button" aria-label="Trang trước">
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <span class="is-active">1</span>
+                                <button type="button" aria-label="Trang sau">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </t>
+
+                <t t-else="">
+                    <section class="tc-provisional-upload-grid">
+                        <div class="tc-provisional-upload-main">
+                            <div class="tc-provisional-dropzone">
+                                <div class="tc-provisional-dropzone__icon">
+                                    <span class="material-symbols-outlined">cloud_upload</span>
+                                </div>
+                                <strong>Kéo thả tệp tin tại đây</strong>
+                                <p>Hỗ trợ định dạng .xlsx, .csv. Kích thước tối đa 25MB cho mỗi tệp tin.</p>
+                                <div class="tc-provisional-dropzone__actions">
+                                    <button type="button" class="tc-provisional-dropzone__button tc-provisional-dropzone__button--primary">
+                                        <span class="material-symbols-outlined">description</span>
+                                        Chọn tệp từ máy
+                                    </button>
+                                    <button type="button" class="tc-provisional-dropzone__button tc-provisional-dropzone__button--secondary">
+                                        <span class="material-symbols-outlined">rule</span>
+                                        Kiểm tra dữ liệu
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="tc-provisional-note-card">
+                                <div class="tc-provisional-note-card__icon">
+                                    <span class="material-symbols-outlined">info</span>
+                                </div>
+                                <div class="tc-provisional-note-card__content">
+                                    <h3>Hướng dẫn &amp; Lưu ý:</h3>
+                                    <p t-foreach="temporary_upload_hint" t-as="hint"><t t-esc="hint"/></p>
+                                    <div class="tc-provisional-note-card__links">
+                                        <a t-foreach="temporary_upload_links" t-as="link" href="#">
+                                            <span class="material-symbols-outlined"><t t-esc="link['icon']"/></span>
+                                            <t t-esc="link['label']"/>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <aside class="tc-provisional-upload-side">
+                            <section class="tc-provisional-side-card">
+                                <h3>Thao tác cuối</h3>
+                                <a href="#" class="tc-provisional-submit tc-provisional-submit--block">
+                                    <span class="material-symbols-outlined">send</span>
+                                    <t t-esc="temporary_submit_label"/>
+                                </a>
+                                <p>Dữ liệu sẽ được gửi về ban kiểm soát sau khi bạn nhấn nút.</p>
+                            </section>
+
+                            <section class="tc-provisional-side-card">
+                                <h3>Trạng thái tệp</h3>
+                                <div class="tc-provisional-empty-state">
+                                    <span class="material-symbols-outlined">description</span>
+                                    <p>Chưa có tệp nào được tải lên</p>
+                                </div>
+                            </section>
+                        </aside>
+                    </section>
+
+                    <section class="tc-provisional-preview">
+                        <div class="tc-provisional-preview__head">
+                            <h3>Xem trước dữ liệu</h3>
+                            <span>Hiển thị 0 dòng dữ liệu</span>
+                        </div>
+                        <div class="tc-dashboard-table-wrap">
+                            <table class="tc-dashboard-table tc-dashboard-table--preview">
+                                <thead>
+                                    <tr>
+                                        <th t-foreach="temporary_preview_columns" t-as="column">
+                                            <t t-esc="column"/>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="tc-provisional-empty-row">
+                                        <td t-att-colspan="len(temporary_preview_columns)">
+                                            <div class="tc-provisional-empty-state tc-provisional-empty-state--table">
+                                                <span class="material-symbols-outlined">table_rows</span>
+                                                <p>Chưa có dữ liệu để xem trước</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </t>
+            </section>
+        </t>
+    </template>
+</odoo>
