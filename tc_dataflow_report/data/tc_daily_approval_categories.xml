@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="tc_approval_category_daily" model="approval.category">
+            <field name="name">PHÊ DUYỆT BÁO CÁO</field>
+            <field name="image" type="base64" file="approvals/static/src/img/Folder.png"/>
+            <field name="sequence">210</field>
+            <field name="has_date">optional</field>
+            <field name="has_period">no</field>
+            <field name="has_product">no</field>
+            <field name="has_quantity">no</field>
+            <field name="has_amount">optional</field>
+            <field name="has_reference">optional</field>
+            <field name="has_partner">no</field>
+            <field name="has_payment_method">no</field>
+            <field name="has_location">no</field>
+            <field name="requirer_document">optional</field>
+            <field name="approval_minimum">1</field>
+            <field name="automated_sequence">True</field>
+            <field name="sequence_code">TCDT</field>
+        </record>
+
+        <record id="tc_approval_category_daily_admin" model="approval.category.approver">
+            <field name="category_id" ref="tc_approval_category_daily"/>
+            <field name="user_id" ref="base.user_admin"/>
+            <field name="required">True</field>
+        </record>
+    </data>
+</odoo>

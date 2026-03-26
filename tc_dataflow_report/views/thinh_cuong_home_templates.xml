@@ -9,6 +9,8 @@
                 <link rel="icon" type="image/png" href="/tc_dataflow_report/static/src/img/thinhcuong_logo_mark.png"/>
                 <link rel="stylesheet" type="text/css" href="/tc_dataflow_report/static/src/css/import_data.css"/>
                 <script type="text/javascript" src="/tc_dataflow_report/static/src/js/daily_tabs.js" defer="defer"/>
+                <script type="text/javascript" src="/tc_dataflow_report/static/src/js/daily_upload.js" defer="defer"/>
+                <script type="text/javascript" src="/tc_dataflow_report/static/src/js/dashboard_user_menu.js" defer="defer"/>
             </head>
             <body class="tc-dashboard-body">
                 <div class="tc-dashboard-page">
@@ -32,17 +34,6 @@
                             </nav>
 
                             <section class="tc-dashboard-sidebar__section">
-                                <p class="tc-dashboard-sidebar__label">Cơ cấu tổ chức</p>
-                                <div class="tc-dashboard-filter-card">
-                                    <label t-foreach="org_filters" t-as="org" class="tc-dashboard-check">
-                                        <input type="checkbox" t-att-checked="'checked' if org['checked'] else None"/>
-                                        <span class="tc-dashboard-check__box"/>
-                                        <span><t t-esc="org['label']"/></span>
-                                    </label>
-                                </div>
-                            </section>
-
-                            <section class="tc-dashboard-sidebar__section">
                                 <p class="tc-dashboard-sidebar__label">Thời gian</p>
                                 <div class="tc-dashboard-date-card">
                                     <t t-if="sidebar_period_value">
@@ -53,14 +44,17 @@
                                         </button>
                                     </t>
                                     <t t-else="">
-                                        <input class="tc-dashboard-date-input" type="date" t-att-value="selected_date_input"/>
+                                        <input class="tc-dashboard-date-input"
+                                               type="date"
+                                               data-upload-filter-date="1"
+                                               t-att-value="selected_date_input"/>
                                     </t>
                                 </div>
                             </section>
 
                             <section class="tc-dashboard-sidebar__section">
                                 <p class="tc-dashboard-sidebar__label">Thời gian gần đây</p>
-                                <div class="tc-dashboard-timeline">
+                                <div class="tc-dashboard-timeline" data-recent-days="1">
                                     <article t-foreach="recent_days"
                                              t-as="day"
                                              t-attf-class="tc-dashboard-timeline__item {{ day['status_class'] }}">
@@ -76,13 +70,62 @@
 
                         <div class="tc-dashboard-stage">
                             <header class="tc-dashboard-topbar">
-                                <div class="tc-dashboard-user">
-                                    <div class="tc-dashboard-user__meta">
-                                        <strong><t t-esc="user_name"/></strong>
-                                        <span><t t-esc="user_role"/></span>
-                                    </div>
-                                    <div class="tc-dashboard-user__avatar">
-                                        <t t-esc="user_initials"/>
+                                <div class="tc-dashboard-user-menu" data-user-menu="1">
+                                    <button type="button"
+                                            class="tc-dashboard-user"
+                                            data-user-menu-trigger="1"
+                                            aria-haspopup="menu"
+                                            aria-expanded="false">
+                                        <div class="tc-dashboard-user__meta">
+                                            <strong><t t-esc="user_name"/></strong>
+                                            <span><t t-esc="user_role"/></span>
+                                        </div>
+                                        <div class="tc-dashboard-user__avatar">
+                                            <t t-esc="user_initials"/>
+                                        </div>
+                                        <span class="material-symbols-outlined tc-dashboard-user__chevron">expand_more</span>
+                                    </button>
+
+                                    <div class="tc-dashboard-user-dropdown"
+                                         data-user-menu-panel="1"
+                                         role="menu"
+                                         aria-label="Tài khoản người dùng"
+                                         hidden="hidden">
+                                        <a class="tc-dashboard-user-dropdown__item"
+                                           href="https://www.odoo.com/help"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           role="menuitem">
+                                            <span>Help</span>
+                                        </a>
+                                        <div class="tc-dashboard-user-dropdown__item is-static" role="presentation">
+                                            <span>Shortcuts</span>
+                                            <span class="tc-dashboard-user-dropdown__shortcut">CTRL+K</span>
+                                        </div>
+                                        <div class="tc-dashboard-user-dropdown__separator" role="separator"></div>
+                                        <div class="tc-dashboard-user-dropdown__item is-static" role="presentation">
+                                            <span class="tc-dashboard-user-dropdown__status">
+                                                <span class="tc-dashboard-user-dropdown__status-dot" data-user-menu-status-dot="1"></span>
+                                                <span data-user-menu-status-label="1">Online</span>
+                                            </span>
+                                            <span class="material-symbols-outlined tc-dashboard-user-dropdown__arrow">chevron_right</span>
+                                        </div>
+                                        <a class="tc-dashboard-user-dropdown__item"
+                                           href="/odoo/action-base.action_res_users_my"
+                                           role="menuitem">
+                                            <span>My Preferences</span>
+                                        </a>
+                                        <button type="button"
+                                                class="tc-dashboard-user-dropdown__item"
+                                                data-user-menu-account="1"
+                                                role="menuitem">
+                                            <span>My Odoo.com Account</span>
+                                        </button>
+                                        <a class="tc-dashboard-user-dropdown__item"
+                                           href="/web/session/logout?redirect=%2Fweb%2Flogin%3Fredirect%3D%2Fhome"
+                                           role="menuitem">
+                                            <span>Log out</span>
+                                        </a>
                                     </div>
                                 </div>
                             </header>
@@ -106,15 +149,18 @@
                         <span>Ngày thực hiện:</span>
                         <button type="button" class="tc-dashboard-date-chip">
                             <span class="material-symbols-outlined">calendar_today</span>
-                            <t t-esc="selected_date_display"/>
+                            <span data-selected-date-display="1"><t t-esc="selected_date_display"/></span>
                         </button>
                     </div>
                 </div>
 
-                <button type="button" class="tc-dashboard-submit">
-                    <span class="material-symbols-outlined">play_arrow</span>
-                    Gửi phê duyệt
-                </button>
+                <div class="tc-dashboard-header__actions">
+                    <button type="button" class="tc-dashboard-submit" data-submit-approval="1">
+                        <span class="material-symbols-outlined">play_arrow</span>
+                        Gửi phê duyệt
+                    </button>
+                    <p class="tc-dashboard-submit__hint" data-submit-hint="1"></p>
+                </div>
             </section>
 
             <section class="tc-dashboard-tabs" data-daily-tabs="1" role="tablist" aria-label="Daily report tabs">
@@ -136,6 +182,8 @@
                          role="tabpanel"
                          t-att-id="'tc-daily-panel-' + section['key']"
                          t-att-data-section-key="section['key']"
+                         t-att-data-checking-count="section['checking_count']"
+                         t-att-data-section-label="section['short_label']"
                          t-att-aria-hidden="'false' if section['active'] else 'true'"
                          t-att-hidden="None if section['active'] else 'hidden'"
                          t-attf-class="tc-daily-section {{ 'is-active' if section['active'] else '' }}">
@@ -147,47 +195,73 @@
                                     <tr>
                                         <th>File</th>
                                         <th>Version</th>
+                                        <th>Ngày tải lên</th>
+                                        <th>Dung lượng</th>
                                         <th>Status</th>
                                         <th class="is-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr t-foreach="section['uploaded_files']" t-as="file">
-                                        <td class="is-strong"><t t-esc="file['name']"/></td>
-                                        <td><t t-esc="file['version']"/></td>
-                                        <td>
-                                            <span t-attf-class="tc-dashboard-status {{ file['status_class'] }}">
-                                                <span class="material-symbols-outlined"><t t-esc="file['status_icon']"/></span>
-                                                <t t-esc="file['status']"/>
-                                            </span>
-                                        </td>
-                                        <td class="is-right">
-                                            <button type="button" class="tc-dashboard-table__action">
-                                                <span class="material-symbols-outlined">visibility</span>
-                                                <t t-esc="file['action_label']"/>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                <tbody data-uploaded-files-body="1">
+                                    <t t-if="section['uploaded_files']">
+                                        <tr t-foreach="section['uploaded_files']" t-as="file">
+                                            <td class="is-strong"><t t-esc="file['name']"/></td>
+                                            <td><t t-esc="file['version']"/></td>
+                                            <td><t t-esc="file['uploaded_at_display']"/></td>
+                                            <td><t t-esc="file['size_display']"/></td>
+                                            <td>
+                                                <span t-attf-class="tc-dashboard-status {{ file['status_class'] }}">
+                                                    <span class="material-symbols-outlined"><t t-esc="file['status_icon']"/></span>
+                                                    <t t-esc="file['status']"/>
+                                                </span>
+                                            </td>
+                                            <td class="is-right">
+                                                <div class="tc-dashboard-table__actions">
+                                                    <button t-foreach="file['actions']"
+                                                            t-as="action"
+                                                            type="button"
+                                                            t-attf-class="tc-dashboard-table__action is-{{ action.get('style') or 'ghost' }}"
+                                                            t-att-data-action-key="action.get('key')"
+                                                            t-att-data-file-id="file.get('id')"
+                                                            t-att-disabled="'disabled' if action.get('disabled') else None">
+                                                        <span class="material-symbols-outlined"><t t-esc="action.get('icon') or 'visibility'"/></span>
+                                                        <t t-esc="action['label']"/>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-else="">
+                                        <tr class="tc-dashboard-table__empty">
+                                            <td colspan="6">Chưa có file nào được tải lên.</td>
+                                        </tr>
+                                    </t>
                                 </tbody>
                             </table>
                         </div>
                     </section>
 
-                    <section class="tc-dashboard-dropzone">
+                    <section class="tc-dashboard-dropzone" data-upload-zone="1" tabindex="0">
+                        <input class="tc-dashboard-upload-input"
+                               type="file"
+                               accept=".xlsx,.xlsm"
+                               data-upload-input="1"/>
                         <div class="tc-dashboard-dropzone__icon">
                             <span class="material-symbols-outlined">cloud_upload</span>
                         </div>
-                        <strong>Drag &amp; Drop Excel File here or <span>Click to Browse</span></strong>
-                        <p>Supported formats: .xls, .xlsx (Max 10MB)</p>
-                        <button type="button" class="tc-dashboard-dropzone__button">Kiểm tra</button>
+                        <strong>Kéo thả file Excel vào đây hoặc <span>chọn file từ máy</span></strong>
+                        <p>Hỗ trợ .xlsx, .xlsm và tối đa 10MB.</p>
+                        <button type="button" class="tc-dashboard-dropzone__button" data-upload-trigger="1">Chọn file Excel</button>
+                        <p class="tc-dashboard-upload-feedback" data-upload-feedback="1" hidden="hidden"></p>
                     </section>
 
                     <section class="tc-dashboard-panel">
                         <h3 class="tc-dashboard-panel__title"><t t-esc="section['preview_title']"/></h3>
                         <div class="tc-dashboard-table-wrap">
-                            <table class="tc-dashboard-table tc-dashboard-table--preview">
+                            <table class="tc-dashboard-table tc-dashboard-table--preview"
+                                   data-preview-table="1"
+                                   t-att-hidden="None if section['preview_columns'] else 'hidden'">
                                 <thead>
-                                    <tr>
+                                    <tr data-preview-head="1">
                                         <th t-foreach="section['preview_columns']"
                                             t-as="column"
                                             t-att-class="column.get('header_class')">
@@ -195,16 +269,58 @@
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr t-foreach="section['preview_rows']" t-as="row">
-                                        <td t-foreach="section['preview_columns']"
-                                            t-as="column"
-                                            t-att-class="column.get('cell_class')">
-                                            <t t-esc="row[column['field']]"/>
-                                        </td>
-                                    </tr>
+                                <tbody data-preview-body="1">
+                                    <t t-if="section['preview_rows']">
+                                        <tr t-foreach="section['preview_rows']" t-as="row">
+                                            <td t-foreach="section['preview_columns']"
+                                                t-as="column"
+                                                t-att-class="column.get('cell_class')">
+                                                <t t-esc="row[column['field']]"/>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-elif="section['preview_columns']">
+                                        <tr class="tc-dashboard-table__empty">
+                                            <td t-att-colspan="len(section['preview_columns']) or 1">File đã được đọc nhưng chưa có dòng dữ liệu để hiển thị.</td>
+                                        </tr>
+                                    </t>
                                 </tbody>
                             </table>
+                            <div class="tc-dashboard-empty"
+                                 data-preview-empty="1"
+                                 t-att-hidden="'hidden' if section['preview_columns'] else None">
+                                Chưa có dữ liệu preview. Hãy tải lên file Excel đúng mẫu để xem trước.
+                            </div>
+                            <div class="tc-dashboard-preview-pagination"
+                                 data-preview-pagination="1"
+                                 t-att-data-preview-page="section['preview_pagination']['page']"
+                                 t-att-data-preview-total-pages="section['preview_pagination']['total_pages']"
+                                 t-att-data-preview-has-prev="'1' if section['preview_pagination']['has_prev'] else '0'"
+                                 t-att-data-preview-has-next="'1' if section['preview_pagination']['has_next'] else '0'"
+                                 t-att-hidden="'hidden' if not section['preview_columns'] else None">
+                                <p class="tc-dashboard-preview-pagination__summary" data-preview-summary="1">
+                                    <t t-esc="section['preview_pagination']['summary']"/>
+                                </p>
+                                <div class="tc-dashboard-preview-pagination__controls">
+                                    <button type="button"
+                                            class="tc-dashboard-preview-pagination__button"
+                                            data-preview-page-action="prev"
+                                            t-att-disabled="'disabled' if not section['preview_pagination']['has_prev'] else None">
+                                        <span class="material-symbols-outlined">chevron_left</span>
+                                        Trước
+                                    </button>
+                                    <span class="tc-dashboard-preview-pagination__label" data-preview-page-label="1">
+                                        Trang <t t-esc="section['preview_pagination']['page']"/> / <t t-esc="section['preview_pagination']['total_pages']"/>
+                                    </span>
+                                    <button type="button"
+                                            class="tc-dashboard-preview-pagination__button"
+                                            data-preview-page-action="next"
+                                            t-att-disabled="'disabled' if not section['preview_pagination']['has_next'] else None">
+                                        Sau
+                                        <span class="material-symbols-outlined">chevron_right</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </section>

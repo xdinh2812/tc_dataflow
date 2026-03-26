@@ -2,9 +2,10 @@
     'name': 'Tc Dataflow Report',
     'summary': "Thịnh Cường Dataflow",
     'version': '1.0',
-    'depends': ['base', 'web', 'website', 'account', 'analytic'],
+    'depends': ['base', 'web', 'website', 'account', 'analytic', 'approvals'],
     'data': [
         "security/ir.model.access.csv",
+        "data/tc_daily_approval_categories.xml",
         'views/account_dimension_views.xml',
         'views/business_segment_views.xml',
         'views/account_business_performance_views.xml',

@@ -47,6 +47,10 @@
                 panel.hidden = !isActive;
                 panel.setAttribute("aria-hidden", isActive ? "false" : "true");
             });
+
+            document.dispatchEvent(new CustomEvent("tc-daily-tab-change", {
+                detail: {key: key},
+            }));
         }
 
         tabs.forEach(function (tab) {
