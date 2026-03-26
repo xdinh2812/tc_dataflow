@@ -8,6 +8,7 @@
                 <title><t t-esc="page_title"/></title>
                 <link rel="icon" type="image/png" href="/tc_dataflow_report/static/src/img/thinhcuong_logo_mark.png"/>
                 <link rel="stylesheet" type="text/css" href="/tc_dataflow_report/static/src/css/import_data.css"/>
+                <script type="text/javascript" src="/tc_dataflow_report/static/src/js/daily_tabs.js" defer="defer"/>
             </head>
             <body class="tc-dashboard-body">
                 <div class="tc-dashboard-page">
@@ -116,85 +117,98 @@
                 </button>
             </section>
 
-            <section class="tc-dashboard-tabs">
+            <section class="tc-dashboard-tabs" data-daily-tabs="1" role="tablist" aria-label="Daily report tabs">
                 <button t-foreach="tabs"
                         t-as="tab"
                         type="button"
+                        role="tab"
+                        t-att-data-tab-key="tab['key']"
+                        t-att-aria-controls="'tc-daily-panel-' + tab['key']"
+                        t-att-aria-selected="'true' if tab['active'] else 'false'"
                         t-attf-class="tc-dashboard-tabs__item {{ 'is-active' if tab['active'] else '' }}">
                     <t t-esc="tab['label']"/>
                 </button>
             </section>
 
-            <section class="tc-dashboard-panel">
-                <h3 class="tc-dashboard-panel__title">Uploaded Files List</h3>
-                <div class="tc-dashboard-table-wrap">
-                    <table class="tc-dashboard-table">
-                        <thead>
-                            <tr>
-                                <th>File</th>
-                                <th>Version</th>
-                                <th>Status</th>
-                                <th class="is-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr t-foreach="uploaded_files" t-as="file">
-                                <td class="is-strong"><t t-esc="file['name']"/></td>
-                                <td><t t-esc="file['version']"/></td>
-                                <td>
-                                    <span t-attf-class="tc-dashboard-status {{ file['status_class'] }}">
-                                        <span class="material-symbols-outlined"><t t-esc="file['status_icon']"/></span>
-                                        <t t-esc="file['status']"/>
-                                    </span>
-                                </td>
-                                <td class="is-right">
-                                    <button type="button" class="tc-dashboard-table__action">
-                                        <span class="material-symbols-outlined">visibility</span>
-                                        <t t-esc="file['action_label']"/>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            <div class="tc-daily-sections" data-daily-sections="1">
+                <section t-foreach="daily_sections"
+                         t-as="section"
+                         role="tabpanel"
+                         t-att-id="'tc-daily-panel-' + section['key']"
+                         t-att-data-section-key="section['key']"
+                         t-att-aria-hidden="'false' if section['active'] else 'true'"
+                         t-att-hidden="None if section['active'] else 'hidden'"
+                         t-attf-class="tc-daily-section {{ 'is-active' if section['active'] else '' }}">
+                    <section class="tc-dashboard-panel">
+                        <h3 class="tc-dashboard-panel__title"><t t-esc="section['uploaded_files_title']"/></h3>
+                        <div class="tc-dashboard-table-wrap">
+                            <table class="tc-dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>File</th>
+                                        <th>Version</th>
+                                        <th>Status</th>
+                                        <th class="is-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="section['uploaded_files']" t-as="file">
+                                        <td class="is-strong"><t t-esc="file['name']"/></td>
+                                        <td><t t-esc="file['version']"/></td>
+                                        <td>
+                                            <span t-attf-class="tc-dashboard-status {{ file['status_class'] }}">
+                                                <span class="material-symbols-outlined"><t t-esc="file['status_icon']"/></span>
+                                                <t t-esc="file['status']"/>
+                                            </span>
+                                        </td>
+                                        <td class="is-right">
+                                            <button type="button" class="tc-dashboard-table__action">
+                                                <span class="material-symbols-outlined">visibility</span>
+                                                <t t-esc="file['action_label']"/>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
 
-            <section class="tc-dashboard-dropzone">
-                <div class="tc-dashboard-dropzone__icon">
-                    <span class="material-symbols-outlined">cloud_upload</span>
-                </div>
-                <strong>Drag &amp; Drop Excel File here or <span>Click to Browse</span></strong>
-                <p>Supported formats: .xls, .xlsx (Max 10MB)</p>
-                <button type="button" class="tc-dashboard-dropzone__button">Kiểm tra</button>
-            </section>
+                    <section class="tc-dashboard-dropzone">
+                        <div class="tc-dashboard-dropzone__icon">
+                            <span class="material-symbols-outlined">cloud_upload</span>
+                        </div>
+                        <strong>Drag &amp; Drop Excel File here or <span>Click to Browse</span></strong>
+                        <p>Supported formats: .xls, .xlsx (Max 10MB)</p>
+                        <button type="button" class="tc-dashboard-dropzone__button">Kiểm tra</button>
+                    </section>
 
-            <section class="tc-dashboard-panel">
-                <h3 class="tc-dashboard-panel__title">Data Preview</h3>
-                <div class="tc-dashboard-table-wrap">
-                    <table class="tc-dashboard-table tc-dashboard-table--preview">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Date</th>
-                                <th>Product</th>
-                                <th>Region</th>
-                                <th class="is-right">Sales</th>
-                                <th class="is-right">Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr t-foreach="preview_rows" t-as="row">
-                                <td class="is-strong"><t t-esc="row['id']"/></td>
-                                <td><t t-esc="row['date']"/></td>
-                                <td><t t-esc="row['product']"/></td>
-                                <td><t t-esc="row['region']"/></td>
-                                <td class="is-right is-strong"><t t-esc="row['sales']"/></td>
-                                <td class="is-right is-profit"><t t-esc="row['profit']"/></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                    <section class="tc-dashboard-panel">
+                        <h3 class="tc-dashboard-panel__title"><t t-esc="section['preview_title']"/></h3>
+                        <div class="tc-dashboard-table-wrap">
+                            <table class="tc-dashboard-table tc-dashboard-table--preview">
+                                <thead>
+                                    <tr>
+                                        <th t-foreach="section['preview_columns']"
+                                            t-as="column"
+                                            t-att-class="column.get('header_class')">
+                                            <t t-esc="column['label']"/>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="section['preview_rows']" t-as="row">
+                                        <td t-foreach="section['preview_columns']"
+                                            t-as="column"
+                                            t-att-class="column.get('cell_class')">
+                                            <t t-esc="row[column['field']]"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+            </div>
 
             <section class="tc-dashboard-notes">
                 <h3>Ghi chú:</h3>
