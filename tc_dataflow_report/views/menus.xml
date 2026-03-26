@@ -4,10 +4,10 @@
               web_icon="tc_dataflow,static/description/icon.png"
               sequence="10"/>
 
-    <menuitem id="menu_account_financial_summary"
-              name="Tổng hợp dữ liệu tài chính"
+    <menuitem id="menu_account_business_performance"
+              name="Hiệu quả tài chính"
               parent="menu_tc_dataflow_root"
-              action="action_account_financial_summary"
+              action="action_account_business_performance"
               sequence="20"/>
 
     <menuitem id="menu_tc_dataflow_config"
@@ -20,4 +20,10 @@
               parent="menu_tc_dataflow_config"
               action="action_account_dimension"
               sequence="10"/>
+
+    <menuitem id="menu_business_segment"
+              name="Mảng kinh doanh"
+              parent="menu_tc_dataflow_config"
+              action="action_business_segment"
+              sequence="20"/>
 </odoo>

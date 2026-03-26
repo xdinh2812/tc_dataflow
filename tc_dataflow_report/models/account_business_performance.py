@@ -1,9 +1,9 @@
 from odoo import fields, models
 
 
-class AccountFinancialSummary(models.Model):
-    _name = "account.financial.summary"
-    _description = "Tổng hợp dữ liệu tài chính"
+class AccountBusinessPerformance(models.Model):
+    _name = "account.business.performance"
+    _description = "Hiệu quả tài chính"
     _order = "date desc, id desc"
 
     date = fields.Date('Ngày', default=fields.Date.context_today)

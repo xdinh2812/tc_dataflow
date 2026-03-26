@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <record id="view_account_financial_summary_tree" model="ir.ui.view">
-        <field name="name">account.financial.summary.tree</field>
-        <field name="model">account.financial.summary</field>
+    <record id="view_account_business_performance_tree" model="ir.ui.view">
+        <field name="name">account.business.performance.tree</field>
+        <field name="model">account.business.performance</field>
         <field name="arch" type="xml">
-            <list string="Tổng hợp dữ liệu tài chính">
+            <list string="Hiệu quả tài chính">
                 <field name="date"/>
                 <field name="data_type"/>
                 <field name="business_segment_id"/>
@@ -16,6 +16,7 @@
                 <field name="content" optional="hide"/>
                 <field name="in_system"/>
                 <field name="account_id"/>
+                <field name="offset_account_id"/>
                 <field name="currency_id"/>
                 <field name="amount"/>
                 <field name="company_id" groups="base.group_multi_company" optional="hide"/>
@@ -23,11 +24,11 @@
         </field>
     </record>
 
-    <record id="view_account_financial_summary_form" model="ir.ui.view">
-        <field name="name">account.financial.summary.form</field>
-        <field name="model">account.financial.summary</field>
+    <record id="view_account_business_performance_form" model="ir.ui.view">
+        <field name="name">account.business.performance.form</field>
+        <field name="model">account.business.performance</field>
         <field name="arch" type="xml">
-            <form string="Tổng hợp dữ liệu tài chính">
+            <form string="Hiệu quả tài chính">
                 <sheet>
                     <group>
                         <group>
@@ -44,6 +45,7 @@
                             <field name="content"/>
                             <field name="in_system"/>
                             <field name="account_id" domain="[('company_ids', 'parent_of', company_id)]"/>
+                            <field name="offset_account_id" domain="[('company_ids', 'parent_of', company_id)]"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                             <field name="company_id" invisible="1"/>
                         </group>
@@ -63,11 +65,11 @@
         </field>
     </record>
 
-    <record id="view_account_financial_summary_search" model="ir.ui.view">
-        <field name="name">account.financial.summary.search</field>
-        <field name="model">account.financial.summary</field>
+    <record id="view_account_business_performance_search" model="ir.ui.view">
+        <field name="name">account.business.performance.search</field>
+        <field name="model">account.business.performance</field>
         <field name="arch" type="xml">
-            <search string="Tổng hợp dữ liệu tài chính">
+            <search string="Hiệu quả tài chính">
                 <field name="business_segment_id"/>
                 <field name="partner_id"/>
                 <field name="cost_center_id"/>
@@ -91,11 +93,10 @@
         </field>
     </record>
 
-    <record id="action_account_financial_summary" model="ir.actions.act_window">
-        <field name="name">Tổng hợp dữ liệu tài chính</field>
-        <field name="res_model">account.financial.summary</field>
+    <record id="action_account_business_performance" model="ir.actions.act_window">
+        <field name="name">Hiệu quả tài chính</field>
+        <field name="res_model">account.business.performance</field>
         <field name="view_mode">list,form</field>
-        <field name="search_view_id" ref="view_account_financial_summary_search"/>
+        <field name="search_view_id" ref="view_account_business_performance_search"/>
     </record>
-
 </odoo>

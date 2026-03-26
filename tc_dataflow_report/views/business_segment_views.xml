@@ -44,9 +44,4 @@
         <field name="search_view_id" ref="view_business_segment_search"/>
     </record>
 
-    <menuitem id="menu_business_segment"
-              name="Mảng kinh doanh"
-              parent="menu_tc_dataflow_config"
-              action="action_business_segment"
-              sequence="20"/>
 </odoo>

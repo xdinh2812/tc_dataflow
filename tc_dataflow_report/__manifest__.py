@@ -7,7 +7,7 @@
         "security/ir.model.access.csv",
         'views/account_dimension_views.xml',
         'views/business_segment_views.xml',
-        'views/account_financial_summary_views.xml',
+        'views/account_business_performance_views.xml',
         'views/login_templates.xml',
         'views/thinh_cuong_home_templates.xml',
         'views/thinh_cuong_temporary_templates.xml',
