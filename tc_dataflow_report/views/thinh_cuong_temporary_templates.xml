@@ -86,11 +86,11 @@
                             <span><t t-esc="temporary_total_records"/></span>
                             <div class="tc-provisional-pagination">
                                 <button type="button" aria-label="Trang trước">
-                                    <span class="material-symbols-outlined">chevron_left</span>
+                                    <span class="material-symbols-outlined"></span>
                                 </button>
                                 <span class="is-active">1</span>
                                 <button type="button" aria-label="Trang sau">
-                                    <span class="material-symbols-outlined">chevron_right</span>
+                                    <span class="material-symbols-outlined"></span>
                                 </button>
                             </div>
                         </div>
