@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="thinh_cuong_plan_report" name="TC Business Plan Report">
+        <t t-call="tc_dataflow_report.thinh_cuong_dashboard_layout">
+            <section class="tc-plan-header">
+                <div class="tc-plan-header__copy">
+                    <h2><t t-esc="report_title"/></h2>
+                </div>
+                <div class="tc-plan-header__actions">
+                    <p class="tc-plan-header__version"><t t-esc="report_version_text"/></p>
+                    <div class="tc-plan-header__buttons">
+                        <button type="button" class="tc-plan-button tc-plan-button--ghost">
+                            <span class="material-symbols-outlined">unfold_less</span>
+                            Thu gọn tất cả
+                        </button>
+                        <button type="button" class="tc-plan-button tc-plan-button--primary">
+                            <span class="material-symbols-outlined">download</span>
+                            Xuất dữ liệu
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tc-plan-panel">
+                <div class="tc-plan-table-wrap">
+                    <table class="tc-plan-table">
+                        <thead>
+                            <tr>
+                                <th>Chỉ tiêu kinh doanh</th>
+                                <th>Đầu tài khoản</th>
+                                <th class="is-right">Mục tiêu</th>
+                                <th class="is-right">Đã hoàn thành</th>
+                                <th>Hoàn thành %</th>
+                                <th>Version</th>
+                                <th>Ngày cập nhật</th>
+                                <th class="is-right">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="plan_rows"
+                                t-as="row"
+                                t-attf-class="tc-plan-row {{ 'is-group' if row['is_group'] else 'is-child' }}">
+                                <td class="tc-plan-cell-title">
+                                    <div class="tc-plan-title-wrap">
+                                        <span t-if="row['is_group']" class="material-symbols-outlined">chevron_right</span>
+                                        <span t-attf-class="tc-plan-title {{ 'is-group' if row['is_group'] else '' }}">
+                                            <t t-esc="row['label']"/>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="tc-plan-cell-accounts">
+                                    <span t-foreach="row['accounts']" t-as="account" class="tc-plan-account">
+                                        <t t-esc="account"/>
+                                    </span>
+                                </td>
+                                <td class="is-right tc-plan-metric"><t t-esc="row['target']"/></td>
+                                <td class="is-right tc-plan-metric"><t t-esc="row['completed']"/></td>
+                                <td>
+                                    <div class="tc-plan-progress">
+                                        <span>Progress <t t-esc="'%.1f' % row['progress']"/>%</span>
+                                        <div class="tc-plan-progress__track">
+                                            <div class="tc-plan-progress__bar" t-attf-style="width: {{ row['progress'] }}%;"/>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="tc-plan-version-pill"><t t-esc="row['version']"/></span>
+                                </td>
+                                <td class="tc-plan-updated"><t t-esc="row['updated_at']"/></td>
+                                <td class="is-right">
+                                    <button type="button" class="tc-dashboard-table__action">
+                                        <span class="material-symbols-outlined">visibility</span>
+                                        <t t-esc="row['action_label']"/>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </t>
+    </template>
+</odoo>

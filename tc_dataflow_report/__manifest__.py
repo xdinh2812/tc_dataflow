@@ -11,6 +11,7 @@
         'views/login_templates.xml',
         'views/thinh_cuong_home_templates.xml',
         'views/thinh_cuong_temporary_templates.xml',
+        'views/thinh_cuong_plan_templates.xml',
         'views/menus.xml',
     ],
     'assets': {

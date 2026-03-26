@@ -44,7 +44,16 @@
                             <section class="tc-dashboard-sidebar__section">
                                 <p class="tc-dashboard-sidebar__label">Thời gian</p>
                                 <div class="tc-dashboard-date-card">
-                                    <input class="tc-dashboard-date-input" type="date" t-att-value="selected_date_input"/>
+                                    <t t-if="sidebar_period_value">
+                                        <button type="button" class="tc-dashboard-period-trigger">
+                                            <span class="material-symbols-outlined">calendar_today</span>
+                                            <span><t t-esc="sidebar_period_value"/></span>
+                                            <span class="material-symbols-outlined">expand_more</span>
+                                        </button>
+                                    </t>
+                                    <t t-else="">
+                                        <input class="tc-dashboard-date-input" type="date" t-att-value="selected_date_input"/>
+                                    </t>
                                 </div>
                             </section>
 

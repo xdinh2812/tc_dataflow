@@ -28,14 +28,14 @@ class TcDataflowReportController(http.Controller):
             },
             {
                 "date": (today - timedelta(days=2)).strftime("%d/%m/%Y"),
-                "status": "CHƯA LÀM",
-                "status_class": "is-pending",
+                "status": "ĐÃ DUYỆT",
+                "status_class": "is-approved",
                 "note": "Chi phí vận hành",
             },
             {
                 "date": (today - timedelta(days=3)).strftime("%d/%m/%Y"),
-                "status": "ĐÃ DUYỆT",
-                "status_class": "is-approved",
+                "status": "ĐÃ LÀM",
+                "status_class": "is-done",
                 "note": "Kế hoạch nhân sự",
             },
             {
@@ -63,8 +63,8 @@ class TcDataflowReportController(http.Controller):
             {
                 "label": "Kế hoạch",
                 "icon": "dashboard",
-                "active": False,
-                "href": "#",
+                "active": current_view == "plan",
+                "href": "/home/ke-hoach",
             },
             {
                 "label": "Tổng hợp",
@@ -77,10 +77,10 @@ class TcDataflowReportController(http.Controller):
     def _build_base_context(self, current_view):
         today = date.today()
         user = request.env.user
-
         titles = {
             "daily": "Báo cáo tài chính - Kế toán",
             "temporary": "Báo cáo tài chính - Tạm tính",
+            "plan": "Kế hoạch kinh doanh",
         }
 
         return {
@@ -88,7 +88,7 @@ class TcDataflowReportController(http.Controller):
             "brand_name": "THỊNH CƯỜNG",
             "current_view": current_view,
             "user_name": user.name,
-            "user_role": "QUẢN TRỊ VIÊN HỆ THỐNG",
+            "user_role": "FINANCIAL DIRECTOR",
             "user_initials": self._get_user_initials(user.name),
             "selected_date_display": today.strftime("%d/%m/%Y"),
             "selected_date_input": today.isoformat(),
@@ -100,6 +100,7 @@ class TcDataflowReportController(http.Controller):
                 {"label": "Chi nhánh HN", "checked": False},
             ],
             "recent_days": self._build_recent_days(today),
+            "sidebar_period_value": None,
         }
 
     def _build_daily_view_context(self):
@@ -261,6 +262,85 @@ class TcDataflowReportController(http.Controller):
             ],
         }
 
+    def _build_plan_rows(self):
+        return [
+            {
+                "is_group": True,
+                "label": "1. DOANH THU & THU NHẬP",
+                "accounts": ["511", "515", "711"],
+                "target": "25.400.000.000",
+                "completed": "18.237.200.000",
+                "progress": 71.8,
+                "version": "V2.0",
+                "updated_at": "01/03/2026",
+                "action_label": "Chi tiết",
+            },
+            {
+                "is_group": False,
+                "label": "Doanh thu bán hàng",
+                "accounts": ["5111"],
+                "target": "22.000.000.000",
+                "completed": "16.500.000.000",
+                "progress": 75.0,
+                "version": "V2.0",
+                "updated_at": "01/03/2026",
+                "action_label": "Cập nhật",
+            },
+            {
+                "is_group": False,
+                "label": "Doanh thu tài chính",
+                "accounts": ["515"],
+                "target": "3.400.000.000",
+                "completed": "1.737.200.000",
+                "progress": 51.1,
+                "version": "V2.0",
+                "updated_at": "01/03/2026",
+                "action_label": "Cập nhật",
+            },
+            {
+                "is_group": True,
+                "label": "2. GIÁ VỐN HÀNG BÁN",
+                "accounts": ["632"],
+                "target": "15.200.000.000",
+                "completed": "11.400.000.000",
+                "progress": 75.0,
+                "version": "V2.0",
+                "updated_at": "01/03/2026",
+                "action_label": "Chi tiết",
+            },
+            {
+                "is_group": False,
+                "label": "Giá vốn nguyên vật liệu",
+                "accounts": ["6321"],
+                "target": "9.800.000.000",
+                "completed": "7.420.000.000",
+                "progress": 75.7,
+                "version": "V2.0",
+                "updated_at": "01/03/2026",
+                "action_label": "Cập nhật",
+            },
+            {
+                "is_group": False,
+                "label": "Giá vốn vận hành",
+                "accounts": ["6328"],
+                "target": "5.400.000.000",
+                "completed": "3.980.000.000",
+                "progress": 73.7,
+                "version": "V2.0",
+                "updated_at": "01/03/2026",
+                "action_label": "Cập nhật",
+            },
+        ]
+
+    def _build_plan_view_context(self):
+        today = date.today()
+        return {
+            "report_title": "KẾ HOẠCH KINH DOANH",
+            "report_version_text": f"PHIÊN BẢN HIỆU LỰC: V2 | THÁNG {today.strftime('%m/%Y')}",
+            "sidebar_period_value": f"Tháng {today.strftime('%m/%Y')}",
+            "plan_rows": self._build_plan_rows(),
+        }
+
     @http.route("/", type="http", auth="public", website=True, sitemap=False)
     def thinh_cuong_root_redirect(self, **kwargs):
         if request.env.user._is_public():
@@ -276,7 +356,12 @@ class TcDataflowReportController(http.Controller):
     @http.route("/home/tam-tinh", type="http", auth="user")
     def thinh_cuong_temporary_report(self, **kwargs):
         provisional_tab = "upload" if kwargs.get("tab") == "upload" else "list"
-
         context = self._build_base_context("temporary")
         context.update(self._build_provisional_view_context(provisional_tab))
         return request.render("tc_dataflow_report.thinh_cuong_temporary_report", context)
+
+    @http.route("/home/ke-hoach", type="http", auth="user")
+    def thinh_cuong_plan_report(self, **kwargs):
+        context = self._build_base_context("plan")
+        context.update(self._build_plan_view_context())
+        return request.render("tc_dataflow_report.thinh_cuong_plan_report", context)
