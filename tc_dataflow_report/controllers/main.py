@@ -6,10 +6,13 @@ import re
 import unicodedata
 import uuid
 import zipfile
+from dateutil.relativedelta import relativedelta
 from datetime import date, datetime, timedelta
+from urllib.parse import urlencode
 from xml.etree import ElementTree as ET
 
 from odoo import fields, http
+from odoo.exceptions import UserError, ValidationError
 from odoo.http import request
 
 
@@ -173,6 +176,8 @@ class TcDataflowReportController(http.Controller):
                 {"label": "Chi nhánh HN", "checked": False},
             ],
             "sidebar_period_value": None,
+            "show_sidebar_time_filter": True,
+            "show_sidebar_recent_days": True,
         }
         context.update(self._build_daily_shared_context(selected_date))
         return context
@@ -413,13 +418,34 @@ class TcDataflowReportController(http.Controller):
         approved_record = self._get_daily_approved_record(upload_records)
         return approved_record if approved_record else self._get_daily_upload_model()
 
-    def _build_daily_sections(self, filter_date=None):
+    def _is_temporary_import_workspace(self, workspace):
+        return (workspace or "").strip() == "temporary-import"
+
+    def _get_temporary_import_section_keys(self):
+        return [
+            "hieu-qua-kinh-doanh",
+            "doanh-thu",
+            "dong-tien",
+            "phai-thu",
+            "phai-tra",
+            "tai-san",
+        ]
+
+    def _build_daily_sections(self, filter_date=None, section_keys=None, auto_preview=True):
         sections = {}
-        for key, definition in self._get_daily_section_definitions().items():
+        section_definitions = self._get_daily_section_definitions()
+        ordered_keys = section_keys or list(section_definitions)
+        for key in ordered_keys:
+            definition = section_definitions.get(key)
+            if not definition:
+                continue
             upload_records = self._get_daily_upload_records(key, filter_date=filter_date)
             active_record = self._get_daily_active_record(upload_records)
-            approved_record = self._get_daily_approved_record(upload_records)
-            preview_record = self._get_daily_preview_record(upload_records)
+            preview_record = (
+                self._get_daily_preview_record(upload_records)
+                if auto_preview
+                else self._get_daily_upload_model()
+            )
             preview_payload = self._build_daily_preview_payload(
                 (preview_record.preview_columns if preview_record else []) or [],
                 (preview_record.preview_rows if preview_record else []) or [],
@@ -965,9 +991,32 @@ class TcDataflowReportController(http.Controller):
         model.create(records_to_create)
         return len(records_to_create)
 
-    def _build_daily_view_context(self, selected_section_key, filter_date):
-        sections = self._build_daily_sections(filter_date=filter_date)
-        current_section_key = selected_section_key if selected_section_key in sections else "doanh-thu"
+    def _build_daily_view_context(
+        self,
+        selected_section_key,
+        filter_date,
+        section_keys=None,
+        auto_preview=True,
+        default_section_key="doanh-thu",
+        report_title="BÁO CÁO TÀI CHÍNH - KẾ TOÁN",
+        report_subtitle="",
+        notes=None,
+        header_actions=None,
+        workspace="daily",
+    ):
+        sections = self._build_daily_sections(
+            filter_date=filter_date,
+            section_keys=section_keys,
+            auto_preview=auto_preview,
+        )
+        if selected_section_key in sections:
+            current_section_key = selected_section_key
+        elif default_section_key in sections:
+            current_section_key = default_section_key
+        elif sections:
+            current_section_key = next(iter(sections))
+        else:
+            current_section_key = ""
         tabs = []
         daily_sections = []
 
@@ -992,19 +1041,52 @@ class TcDataflowReportController(http.Controller):
                 }
             )
 
+        default_notes = [
+            {"label": "Preview đọc toàn bộ file Excel nhưng chỉ hiển thị các cột đã map", "link_text": "Cấu hình sẽ mở rộng sau"},
+            {"label": "File upload vào trạng thái kiểm tra, bấm Gửi phê duyệt để tạo yêu cầu Approvals", "link_text": "Dữ liệu chỉ đẩy DB sau khi được duyệt"},
+            {"label": "Dữ liệu dài sẽ được phân trang 100 dòng mỗi lần xem", "link_text": "Chuyển trang ngay trên preview"},
+        ]
         return {
-            "report_title": "BÁO CÁO TÀI CHÍNH - KẾ TOÁN",
+            "report_title": report_title,
+            "report_subtitle": report_subtitle,
             "daily_current_section_key": current_section_key,
             "tabs": tabs,
             "daily_sections": daily_sections,
-            "notes": [
-                {"label": "Preview đọc toàn bộ file Excel nhưng chỉ hiển thị các cột đã map", "link_text": "Cấu hình sẽ mở rộng sau"},
-                {"label": "File upload vào trạng thái kiểm tra, bấm Gửi phê duyệt để tạo yêu cầu Approvals", "link_text": "Dữ liệu chỉ đẩy DB sau khi được duyệt"},
-                {"label": "Dữ liệu dài sẽ được phân trang 100 dòng mỗi lần xem", "link_text": "Chuyển trang ngay trên preview"},
-            ],
+            "notes": notes or default_notes,
+            "dashboard_header_actions": header_actions or [],
+            "daily_workspace": workspace,
         }
 
-    def _build_daily_action_response(self, section_key, filter_date, preview_file=None, page=1):
+    def _build_temporary_import_view_context(self, selected_section_key, filter_date):
+        return self._build_daily_view_context(
+            selected_section_key,
+            filter_date,
+            section_keys=self._get_temporary_import_section_keys(),
+            auto_preview=False,
+            default_section_key="hieu-qua-kinh-doanh",
+            report_title="IMPORT CHỈ TIÊU TẠM TÍNH",
+            report_subtitle="Danh sách file hiển thị trước theo từng tab chỉ tiêu. Chọn file trong bảng để mở preview và xử lý dữ liệu.",
+            notes=[
+                {"label": "Mỗi tab là một nhóm chỉ tiêu liên quan đến dữ liệu tạm tính", "link_text": "Chọn đúng tab trước khi tải file"},
+                {"label": "Chi tiết preview chỉ mở khi bấm vào file trong danh sách", "link_text": "Giữ đúng luồng list rồi mới tới detail"},
+                {"label": "Sau khi kiểm tra xong có thể gửi phê duyệt ngay trên từng dòng file", "link_text": "Dữ liệu chỉ import sau khi được duyệt"},
+            ],
+            header_actions=[
+                {
+                    "label": "Chọn luồng",
+                    "href": "/home/tam-tinh",
+                    "button_class": "tc-temporary-button tc-temporary-button--ghost",
+                },
+                {
+                    "label": "Danh sách phiếu",
+                    "href": "/home/tam-tinh?mode=create",
+                    "button_class": "tc-temporary-button tc-temporary-button--primary",
+                },
+            ],
+            workspace="temporary-import",
+        )
+
+    def _build_daily_action_response(self, section_key, filter_date, preview_file=None, page=1, workspace="daily"):
         response_payload = self._build_daily_shared_context(filter_date)
         response_payload.update(
             self._build_daily_section_response(
@@ -1012,15 +1094,25 @@ class TcDataflowReportController(http.Controller):
                 preview_file=preview_file,
                 page=page,
                 filter_date=filter_date,
+                auto_preview=not self._is_temporary_import_workspace(workspace),
             )
         )
         return response_payload
 
-    def _build_daily_filter_response(self, filter_date):
+    def _build_daily_filter_response(self, filter_date, workspace="daily"):
+        section_keys = (
+            self._get_temporary_import_section_keys()
+            if self._is_temporary_import_workspace(workspace)
+            else None
+        )
         response_payload = self._build_daily_shared_context(filter_date)
         response_payload["sections"] = {
-            section_key: self._build_daily_section_response(section_key, filter_date=filter_date)
-            for section_key in self._get_daily_section_definitions()
+            section_key: self._build_daily_section_response(
+                section_key,
+                filter_date=filter_date,
+                auto_preview=not self._is_temporary_import_workspace(workspace),
+            )
+            for section_key in (section_keys or self._get_daily_section_definitions())
         }
         return response_payload
 
@@ -1099,86 +1191,6 @@ class TcDataflowReportController(http.Controller):
             }
         )
         return approval_request
-
-    def _build_provisional_list_groups(self):
-        return [
-            {
-                "name": "NHÓM 1: DOANH THU",
-                "icon": "folder_open",
-                "rows": [
-                    {
-                        "id": "PE-202603-001",
-                        "debit": "111",
-                        "credit": "511",
-                        "amount": "10,000,000",
-                        "description": "Doanh thu bán hàng A",
-                        "version": "V1",
-                        "due_date": "31/03/2026",
-                        "action_label": "Chi tiết",
-                    },
-                    {
-                        "id": "PE-202603-002",
-                        "debit": "112",
-                        "credit": "511",
-                        "amount": "5,000,000",
-                        "description": "Doanh thu bán hàng B",
-                        "version": "V1",
-                        "due_date": "31/03/2026",
-                        "action_label": "Chi tiết",
-                    },
-                ],
-            },
-            {
-                "name": "NHÓM 2: DÒNG TIỀN",
-                "icon": "folder",
-                "rows": [
-                    {
-                        "id": "PE-202603-003",
-                        "debit": "111",
-                        "credit": "511",
-                        "amount": "2,000,000",
-                        "description": "Tiền mặt",
-                        "version": "V1",
-                        "due_date": "31/03/2026",
-                        "action_label": "Chi tiết",
-                    },
-                ],
-            },
-        ]
-
-    def _build_provisional_view_context(self, provisional_tab):
-        today = date.today()
-        return {
-            "provisional_tab": provisional_tab,
-            "report_title": "BÁO CÁO TÀI CHÍNH - TẠM TÍNH",
-            "report_subtitle": f"Bút toán tạm tính - Kế toán | Tháng {today.strftime('%m/%Y')}",
-            "temporary_tabs": [
-                {
-                    "label": "Bảng danh sách",
-                    "href": "/home/tam-tinh?tab=list",
-                    "active": provisional_tab == "list",
-                },
-                {
-                    "label": "Tải lên",
-                    "href": "/home/tam-tinh?tab=upload",
-                    "active": provisional_tab == "upload",
-                },
-            ],
-            "temporary_search_placeholder": "Tìm kiếm...",
-            "temporary_submit_label": "Gửi số liệu tạm tính",
-            "temporary_groups": self._build_provisional_list_groups(),
-            "temporary_total": "17,000,000",
-            "temporary_total_records": "Hiển thị 3 trên 3 bản ghi",
-            "temporary_upload_hint": [
-                "Vui lòng sử dụng đúng biểu mẫu quy định của tập đoàn để tránh lỗi trong quá trình xử lý dữ liệu.",
-                "Các trường có dấu (*) là bắt buộc.",
-            ],
-            "temporary_upload_links": [
-                {"label": "Tải file biểu mẫu (.xlsx)", "icon": "download"},
-                {"label": "Xem tài liệu hướng dẫn", "icon": "help"},
-            ],
-            "temporary_preview_columns": ["ID", "Ngày", "Sản phẩm", "Doanh thu", "Lợi nhuận"],
-        }
 
     def _build_plan_rows(self):
         return [
@@ -1259,6 +1271,501 @@ class TcDataflowReportController(http.Controller):
             "plan_rows": self._build_plan_rows(),
         }
 
+    def _get_provisional_entry_model(self):
+        return request.env["tc.provisional.entry"]
+
+    def _parse_provisional_int(self, raw_value):
+        try:
+            return int(raw_value)
+        except (TypeError, ValueError):
+            return False
+
+    def _parse_provisional_float(self, raw_value):
+        try:
+            normalized_value = str(raw_value or "0").replace(",", "").strip()
+            return float(normalized_value) if normalized_value else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _parse_provisional_date(self, raw_value):
+        if not raw_value:
+            return False
+        try:
+            return fields.Date.to_date(raw_value)
+        except Exception:
+            return False
+
+    def _format_provisional_amount(self, amount):
+        return "{:,.0f}".format(amount or 0.0).replace(",", ".")
+
+    def _format_provisional_date(self, value):
+        parsed_value = value if isinstance(value, date) else self._parse_provisional_date(value)
+        return parsed_value.strftime("%d/%m/%Y") if parsed_value else "--"
+
+    def _get_provisional_state_config(self, state):
+        return {
+            "draft": {"label": "Draft", "class": "is-draft"},
+            "calculated": {"label": "Đã tính toán", "class": "is-calculated"},
+            "generated": {"label": "Đã sinh phiếu", "class": "is-generated"},
+            "posted": {"label": "Đã ghi sổ", "class": "is-posted"},
+        }.get(state or "draft", {"label": "Draft", "class": "is-draft"})
+
+    def _get_provisional_line_state_config(self, state):
+        return {
+            "calculated": {"label": "Chưa ghi nhận", "class": "is-pending"},
+            "generated": {"label": "Chờ ghi sổ", "class": "is-generated"},
+            "posted": {"label": "Đã ghi sổ", "class": "is-posted"},
+        }.get(state or "calculated", {"label": "Chưa ghi nhận", "class": "is-pending"})
+
+    def _get_provisional_entry(self, entry_id):
+        parsed_entry_id = self._parse_provisional_int(entry_id)
+        if not parsed_entry_id:
+            return self._get_provisional_entry_model()
+        return self._get_provisional_entry_model().search(
+            [
+                ("id", "=", parsed_entry_id),
+                ("company_id", "=", request.env.company.id),
+            ],
+            limit=1,
+        )
+
+    def _build_provisional_preview_rows(self, entry):
+        if not entry:
+            return []
+        preview_rows = []
+        for line in entry.line_ids.sorted("sequence"):
+            line_state = self._get_provisional_line_state_config(line.state)
+            preview_rows.append(
+                {
+                    "date": self._format_provisional_date(line.schedule_date),
+                    "amount": self._format_provisional_amount(line.amount),
+                    "description": line.description,
+                    "status": line_state["label"],
+                    "status_class": line_state["class"],
+                }
+            )
+        return preview_rows
+
+    def _build_temporary_hub_context(self):
+        provisional_model = self._get_provisional_entry_model()
+        daily_upload_model = self._get_daily_upload_model()
+        latest_entry = provisional_model.search(
+            [("company_id", "=", request.env.company.id)],
+            order="write_date desc, id desc",
+            limit=1,
+        )
+        latest_import = daily_upload_model.search(
+            [("company_id", "=", request.env.company.id)],
+            order="upload_date desc, id desc",
+            limit=1,
+        )
+        return {
+            "report_title": "TẠM TÍNH",
+            "report_subtitle": "Chọn cách làm việc với dữ liệu tạm tính trước khi đi sâu vào xử lý chi tiết.",
+            "temporary_hub_cards": [
+                {
+                    "title": "Import file",
+                    "description": "Đi vào giao diện import cũ với các tab chỉ tiêu, upload file, preview và xử lý dữ liệu.",
+                    "count": daily_upload_model.search_count([("company_id", "=", request.env.company.id)]),
+                    "count_label": "file import đã tải lên",
+                    "note": latest_import.name if latest_import else "Chưa có file import gần đây",
+                    "href": "/home/tam-tinh?mode=import",
+                    "style": "is-import",
+                    "icon": "upload_file",
+                },
+                {
+                    "title": "Tạo dữ liệu tạm tính",
+                    "description": "Đi vào danh sách phiếu tạm tính, tạo mới hoặc mở từng dòng để xử lý form chi tiết.",
+                    "count": provisional_model.search_count([("company_id", "=", request.env.company.id)]),
+                    "count_label": "phiếu trong danh sách",
+                    "note": latest_entry.reference if latest_entry else "Chưa có phiếu tạm tính nào",
+                    "href": "/home/tam-tinh?mode=create",
+                    "style": "is-create",
+                    "icon": "edit_square",
+                },
+            ],
+        }
+
+    def _get_provisional_redirect_url(self, entry):
+        return "/home/tam-tinh?%s" % urlencode(
+            {
+                "mode": "create",
+                "view": "form",
+                "entry_id": entry.id,
+            }
+        )
+
+    def _set_provisional_flash(self, level, message):
+        request.session["tc_provisional_flash"] = {"level": level, "message": message}
+
+    def _pop_provisional_flash(self):
+        flash_payload = request.session.pop("tc_provisional_flash", None)
+        return flash_payload if isinstance(flash_payload, dict) else None
+
+    def _save_provisional_entry(self, form_data):
+        entry = self._get_provisional_entry(form_data.get("entry_id"))
+        prepared_vals = self._prepare_provisional_vals(form_data)
+        if form_data.get("entry_id") and not entry:
+            raise UserError("Không tìm thấy phiếu tạm tính cần cập nhật.")
+        if entry:
+            entry.write(prepared_vals)
+        else:
+            entry = self._get_provisional_entry_model().create(prepared_vals)
+        return entry
+
+    def _render_provisional_page(self, entry=None, form_data=None, feedback=None, status=200):
+        context = self._build_base_context("temporary")
+        context.update(
+            self._build_provisional_view_context(
+                entry=entry,
+                form_data=form_data,
+                feedback=feedback,
+            )
+        )
+        response = request.render("tc_dataflow_report.thinh_cuong_temporary_report", context)
+        response.status_code = status
+        return response
+
+    def _normalize_provisional_allocation_type(self, raw_value):
+        return "manual" if raw_value in {"manual", "fixed"} else "auto"
+
+    def _build_provisional_defaults(self):
+        current_date = self._get_today()
+        start_date = current_date.replace(day=1)
+        end_date = start_date + relativedelta(months=1, days=-1)
+        general_journal = request.env["account.journal"].search(
+            [
+                ("type", "=", "general"),
+                "|",
+                ("company_id", "=", False),
+                ("company_id", "=", request.env.company.id),
+            ],
+            limit=1,
+        )
+        default_name = "Phân bổ chi phí tạm tính tháng %s" % start_date.strftime("%m/%Y")
+        return {
+            "entry_id": "",
+            "reference": "",
+            "name": default_name,
+            "estimate_type": "auto",
+            "business_segment_id": "",
+            "partner_id": str(request.env.company.partner_id.id or ""),
+            "cost_center_id": "",
+            "dimension_id": "",
+            "cycle": "day",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "total_amount": "",
+            "allocation_method": "equal",
+            "journal_id": str(general_journal.id or "") if general_journal else "",
+            "debit_account_id": "",
+            "credit_account_id": "",
+            "posting_date": current_date.isoformat(),
+            "move_label": default_name,
+            "note": "",
+        }
+
+    def _coerce_provisional_form_data(self, source=None):
+        defaults = self._build_provisional_defaults()
+        source = source or {}
+        defaults.update(
+            {
+                "entry_id": str(source.get("entry_id") or defaults["entry_id"]).strip(),
+                "reference": str(source.get("reference") or defaults["reference"]).strip(),
+                "name": str(source.get("name") or defaults["name"]).strip(),
+                "estimate_type": self._normalize_provisional_allocation_type(source.get("estimate_type") or defaults["estimate_type"]),
+                "business_segment_id": str(source.get("business_segment_id") or defaults["business_segment_id"]).strip(),
+                "partner_id": str(source.get("partner_id") or defaults["partner_id"]).strip(),
+                "cost_center_id": str(source.get("cost_center_id") or defaults["cost_center_id"]).strip(),
+                "dimension_id": str(source.get("dimension_id") or defaults["dimension_id"]).strip(),
+                "cycle": "day",
+                "start_date": str(source.get("start_date") or defaults["start_date"]).strip(),
+                "end_date": str(source.get("end_date") or defaults["end_date"]).strip(),
+                "total_amount": str(source.get("total_amount") or defaults["total_amount"]).strip(),
+                "allocation_method": "equal",
+                "journal_id": str(source.get("journal_id") or defaults["journal_id"]).strip(),
+                "debit_account_id": str(source.get("debit_account_id") or defaults["debit_account_id"]).strip(),
+                "credit_account_id": str(source.get("credit_account_id") or defaults["credit_account_id"]).strip(),
+                "posting_date": str(source.get("posting_date") or defaults["posting_date"]).strip(),
+                "move_label": str(source.get("move_label") or defaults["move_label"]).strip(),
+                "note": str(source.get("note") or defaults["note"]).strip(),
+            }
+        )
+        return defaults
+
+    def _entry_to_provisional_form_data(self, entry):
+        return self._coerce_provisional_form_data(
+            {
+                "entry_id": str(entry.id),
+                "reference": entry.reference or "",
+                "name": entry.name or "",
+                "estimate_type": self._normalize_provisional_allocation_type(entry.estimate_type),
+                "business_segment_id": str(entry.business_segment_id.id or ""),
+                "partner_id": str(entry.partner_id.id or ""),
+                "cost_center_id": str(entry.cost_center_id.id or ""),
+                "dimension_id": str(entry.dimension_id.id or ""),
+                "cycle": "day",
+                "start_date": entry.start_date.isoformat() if entry.start_date else "",
+                "end_date": entry.end_date.isoformat() if entry.end_date else "",
+                "total_amount": str(entry.total_amount or ""),
+                "allocation_method": "equal",
+                "journal_id": str(entry.journal_id.id or ""),
+                "debit_account_id": str(entry.debit_account_id.id or ""),
+                "credit_account_id": str(entry.credit_account_id.id or ""),
+                "posting_date": entry.posting_date.isoformat() if entry.posting_date else "",
+                "move_label": entry.move_label or "",
+                "note": entry.note or "",
+            }
+        )
+
+    def _prepare_provisional_vals(self, form_data):
+        allocation_type = self._normalize_provisional_allocation_type(form_data.get("estimate_type"))
+        posting_date = self._parse_provisional_date(form_data.get("posting_date")) or self._get_today()
+        start_date = self._parse_provisional_date(form_data.get("start_date"))
+        end_date = self._parse_provisional_date(form_data.get("end_date"))
+
+        if allocation_type == "manual":
+            start_date = posting_date
+            end_date = posting_date
+        return {
+            "name": form_data["name"] or self._build_provisional_defaults()["name"],
+            "estimate_type": allocation_type,
+            "business_segment_id": self._parse_provisional_int(form_data["business_segment_id"]),
+            "partner_id": self._parse_provisional_int(form_data["partner_id"]),
+            "cost_center_id": self._parse_provisional_int(form_data["cost_center_id"]),
+            "dimension_id": self._parse_provisional_int(form_data["dimension_id"]),
+            "cycle": "day",
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_amount": self._parse_provisional_float(form_data["total_amount"]),
+            "allocation_method": "equal",
+            "journal_id": self._parse_provisional_int(form_data["journal_id"]),
+            "debit_account_id": self._parse_provisional_int(form_data["debit_account_id"]),
+            "credit_account_id": self._parse_provisional_int(form_data["credit_account_id"]),
+            "posting_date": posting_date,
+            "move_label": form_data["move_label"] or form_data["name"],
+            "note": form_data["note"],
+            "company_id": request.env.company.id,
+        }
+
+    def _get_provisional_schedule_count(self, form_data):
+        allocation_type = self._normalize_provisional_allocation_type(form_data.get("estimate_type"))
+        if allocation_type == "manual":
+            return 1 if self._parse_provisional_date(form_data.get("posting_date")) else 0
+
+        start_date = self._parse_provisional_date(form_data.get("start_date"))
+        end_date = self._parse_provisional_date(form_data.get("end_date"))
+        if not start_date or not end_date or start_date > end_date:
+            return 0
+        return ((end_date - start_date).days or 0) + 1
+
+    def _build_provisional_options(self):
+        business_segments = request.env["business.segment"].search([], order="code, name", limit=60)
+        partner_records = request.env["res.partner"].search([("is_company", "=", True)], order="name", limit=80)
+        cost_centers = request.env["account.analytic.account"].search(
+            [
+                "|",
+                ("company_id", "=", False),
+                ("company_id", "=", request.env.company.id),
+            ],
+            order="name",
+            limit=80,
+        )
+        dimensions = request.env["account.dimension"].search(
+            [("company_id", "=", request.env.company.id)],
+            order="code, name",
+            limit=80,
+        )
+        journals = request.env["account.journal"].search(
+            [
+                ("type", "=", "general"),
+                "|",
+                ("company_id", "=", False),
+                ("company_id", "=", request.env.company.id),
+            ],
+            order="code, name",
+            limit=40,
+        )
+        accounts = request.env["account.account"].search(
+            [("company_ids", "parent_of", request.env.company.id)],
+            order="code, name",
+            limit=200,
+        )
+        return {
+            "allocation_types": [
+                {
+                    "value": "auto",
+                    "label": "Phân bổ tự động",
+                    "description": "Hệ thống chia đều tổng số tiền theo từng ngày trong khoảng đã chọn.",
+                },
+                {
+                    "value": "manual",
+                    "label": "Nhập thủ công",
+                    "description": "Chỉ ghi nhận một ngày hạch toán và một số tiền trên một dòng.",
+                },
+            ],
+            "business_segments": [
+                {"id": str(segment.id), "label": "%s - %s" % (segment.code, segment.name) if segment.code else segment.name}
+                for segment in business_segments
+            ],
+            "partners": [{"id": str(partner.id), "label": partner.name} for partner in partner_records],
+            "cost_centers": [{"id": str(cost_center.id), "label": cost_center.name} for cost_center in cost_centers],
+            "dimensions": [
+                {"id": str(dimension.id), "label": "%s - %s" % (dimension.code, dimension.name) if dimension.code else dimension.name}
+                for dimension in dimensions
+            ],
+            "journals": [
+                {"id": str(journal.id), "label": "%s - %s" % (journal.code, journal.name) if journal.code else journal.name}
+                for journal in journals
+            ],
+            "accounts": [
+                {"id": str(account.id), "label": "%s - %s" % (account.code, account.name) if account.code else account.name}
+                for account in accounts
+            ],
+        }
+
+    def _build_provisional_distribution_note(self, entry, form_data):
+        allocation_type = self._normalize_provisional_allocation_type(form_data.get("estimate_type"))
+        total_amount = entry.total_amount if entry else self._parse_provisional_float(form_data.get("total_amount"))
+        if allocation_type == "manual":
+            posting_date = entry.posting_date if entry else self._parse_provisional_date(form_data.get("posting_date"))
+            if not posting_date or not total_amount:
+                return "Nhập thủ công sẽ tạo 1 dòng preview tại ngày hạch toán đã chọn."
+            return "Hệ thống sẽ tạo 1 dòng preview tại %s với giá trị %s VND." % (
+                self._format_provisional_date(posting_date),
+                self._format_provisional_amount(total_amount),
+            )
+
+        start_date = entry.start_date if entry else self._parse_provisional_date(form_data.get("start_date"))
+        end_date = entry.end_date if entry else self._parse_provisional_date(form_data.get("end_date"))
+        line_count = len(entry.line_ids) if entry else self._get_provisional_schedule_count(form_data)
+        if not start_date or not end_date or not total_amount:
+            return "Phân bổ tự động sẽ chia đều tổng số tiền theo từng ngày trong khoảng ngày đã chọn."
+        return "Tổng số tiền sẽ được chia đều theo %s ngày từ %s đến %s." % (
+            line_count,
+            self._format_provisional_date(start_date),
+            self._format_provisional_date(end_date),
+        )
+
+    def _build_provisional_summary(self, entry, form_data):
+        state_config = self._get_provisional_state_config(entry.state if entry else "draft")
+        allocation_type = self._normalize_provisional_allocation_type(
+            entry.estimate_type if entry else form_data.get("estimate_type")
+        )
+        total_amount = entry.total_amount if entry else self._parse_provisional_float(form_data.get("total_amount"))
+        posting_date = entry.posting_date if entry else self._parse_provisional_date(form_data.get("posting_date"))
+        start_date = entry.start_date if entry else self._parse_provisional_date(form_data.get("start_date"))
+        end_date = entry.end_date if entry else self._parse_provisional_date(form_data.get("end_date"))
+        return {
+            "reference": entry.reference if entry else "Tự sinh khi lưu nháp",
+            "total_amount": self._format_provisional_amount(total_amount),
+            "status_label": state_config["label"],
+            "status_class": state_config["class"],
+            "allocation_type_label": "Nhập thủ công" if allocation_type == "manual" else "Phân bổ tự động",
+            "period_label": (
+                self._format_provisional_date(posting_date)
+                if allocation_type == "manual"
+                else "%s - %s" % (
+                    self._format_provisional_date(start_date),
+                    self._format_provisional_date(end_date),
+                )
+            ),
+            "line_count": len(entry.line_ids) if entry else self._get_provisional_schedule_count(form_data),
+            "move_count": entry.move_count if entry else 0,
+        }
+
+    def _build_provisional_actions(self, entry):
+        state = entry.state if entry else "draft"
+        is_locked = state in {"generated", "posted"}
+        return {
+            "is_locked": is_locked,
+            "can_save": not is_locked,
+            "can_calculate": not is_locked,
+            "can_generate": bool(entry and entry.line_ids and state == "calculated"),
+            "can_post": bool(entry and entry.line_ids.mapped("move_id") and state == "generated"),
+        }
+
+    def _build_provisional_list_rows(self):
+        records = self._get_provisional_entry_model().search(
+            [("company_id", "=", request.env.company.id)],
+            order="write_date desc, id desc",
+            limit=100,
+        )
+        rows = []
+        for record in records:
+            state_config = self._get_provisional_state_config(record.state)
+            allocation_type = self._normalize_provisional_allocation_type(record.estimate_type)
+            rows.append(
+                {
+                    "name": record.name,
+                    "reference": record.reference,
+                    "allocation_type": "Nhap thu cong" if allocation_type == "manual" else "Phan bo tu dong",
+                    "total_amount": self._format_provisional_amount(record.total_amount),
+                    "period": (
+                        self._format_provisional_date(record.posting_date)
+                        if allocation_type == "manual"
+                        else "%s - %s" % (
+                            self._format_provisional_date(record.start_date),
+                            self._format_provisional_date(record.end_date),
+                        )
+                    ),
+                    "updated_at": fields.Datetime.context_timestamp(request.env.user, record.write_date).strftime("%d/%m/%Y %H:%M")
+                    if record.write_date
+                    else "--",
+                    "status_label": state_config["label"],
+                    "status_class": state_config["class"],
+                    "href": "/home/tam-tinh?%s" % urlencode(
+                        {
+                            "mode": "create",
+                            "view": "form",
+                            "entry_id": record.id,
+                        }
+                    ),
+                }
+            )
+        return rows
+
+    def _build_provisional_list_context(self):
+        list_rows = self._build_provisional_list_rows()
+        return {
+            "report_title": "DANH SÁCH PHIẾU TẠM TÍNH",
+            "report_subtitle": "Danh sách hiển thị trước, chọn từng dòng để mở form chi tiết hoặc tạo phiếu mới.",
+            "show_sidebar_time_filter": False,
+            "show_sidebar_recent_days": False,
+            "provisional_list": {
+                "rows": list_rows,
+                "new_form_url": "/home/tam-tinh?mode=create&view=form&new=1",
+                "hub_url": "/home/tam-tinh",
+            },
+        }
+
+    def _build_provisional_view_context(self, entry=None, form_data=None, feedback=None):
+        form_state = self._entry_to_provisional_form_data(entry) if entry else self._coerce_provisional_form_data(form_data)
+        preview_rows = self._build_provisional_preview_rows(entry)
+        current_state = entry.state if entry else "draft"
+        return {
+            "report_title": "TẠM TÍNH",
+            "report_subtitle": "Thiết lập phân bổ và bút toán trên cùng một biểu mẫu.",
+            "show_sidebar_time_filter": False,
+            "show_sidebar_recent_days": False,
+            "provisional": {
+                "entry_id": str(entry.id) if entry else "",
+                "active_tab": "info",
+                "list_url": "/home/tam-tinh?mode=create",
+                "hub_url": "/home/tam-tinh",
+                "feedback": feedback,
+                "form": form_state,
+                "options": self._build_provisional_options(),
+                "summary": self._build_provisional_summary(entry, form_state),
+                "status": self._get_provisional_state_config(current_state),
+                "actions": self._build_provisional_actions(entry),
+                "distribution_note": self._build_provisional_distribution_note(entry, form_state),
+                "preview_rows": preview_rows,
+                "preview_count": len(preview_rows),
+                "preview_empty_message": "Chưa có dòng preview nào. Hãy nhập dữ liệu và bấm Tính toán để sinh preview.",
+            },
+        }
+
     @http.route("/", type="http", auth="public", website=True, sitemap=False)
     def thinh_cuong_root_redirect(self, **kwargs):
         if request.env.user._is_public():
@@ -1275,14 +1782,16 @@ class TcDataflowReportController(http.Controller):
     @http.route("/home/daily/filter", type="http", auth="user", methods=["GET"], csrf=False)
     def thinh_cuong_daily_filter(self, **kwargs):
         filter_date = self._get_daily_filter_date(request.params.get("filter_date"))
+        workspace = request.params.get("workspace")
         response_payload = {"success": True}
-        response_payload.update(self._build_daily_filter_response(filter_date))
+        response_payload.update(self._build_daily_filter_response(filter_date, workspace=workspace))
         return self._make_daily_json_response(response_payload)
 
     @http.route("/home/daily/preview", type="http", auth="user", methods=["GET"], csrf=False)
     def thinh_cuong_daily_preview(self, **kwargs):
         section_key = (request.params.get("section") or "").strip()
         filter_date = self._get_daily_filter_date(request.params.get("filter_date"))
+        workspace = request.params.get("workspace")
         if section_key not in self._get_daily_section_definitions():
             return self._make_daily_json_response(
                 {"success": False, "message": "Danh mục báo cáo không hợp lệ."},
@@ -1303,6 +1812,7 @@ class TcDataflowReportController(http.Controller):
                 filter_date=filter_date,
                 preview_file=preview_file,
                 page=request.params.get("page"),
+                workspace=workspace,
             )
         )
         return self._make_daily_json_response(response_payload)
@@ -1311,6 +1821,7 @@ class TcDataflowReportController(http.Controller):
     def thinh_cuong_daily_upload(self, **kwargs):
         section_key = (request.httprequest.form.get("section") or "").strip()
         filter_date = self._get_daily_filter_date(request.httprequest.form.get("filter_date"))
+        workspace = request.httprequest.form.get("workspace")
         file_storage = request.httprequest.files.get("file")
         section_definitions = self._get_daily_section_definitions()
         if section_key not in section_definitions:
@@ -1327,7 +1838,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Danh mục này đã có file đang xử lý. Chỉ khi file bị từ chối mới được tải file khác.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=active_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=active_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(response_payload, status=400)
 
         if not file_storage or not file_storage.filename:
@@ -1335,7 +1853,7 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Bạn chưa chọn file Excel.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date))
+            response_payload.update(self._build_daily_action_response(section_key, filter_date, workspace=workspace))
             return self._make_daily_json_response(
                 response_payload,
                 status=400,
@@ -1380,7 +1898,14 @@ class TcDataflowReportController(http.Controller):
                 "success": True,
                 "message": f"Đã tải lên file {filename}. File đang ở trạng thái kiểm tra, bấm Gửi phê duyệt để chuyển sang Approvals.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=upload_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(response_payload)
         except ValueError as exc:
             error_message = str(exc)
@@ -1412,7 +1937,14 @@ class TcDataflowReportController(http.Controller):
             "success": False,
             "message": error_message,
         }
-        response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+        response_payload.update(
+            self._build_daily_action_response(
+                section_key,
+                filter_date,
+                preview_file=upload_record,
+                workspace=workspace,
+            )
+        )
         return self._make_daily_json_response(
             response_payload,
             status=400,
@@ -1423,6 +1955,7 @@ class TcDataflowReportController(http.Controller):
         section_key = (request.httprequest.form.get("section") or "").strip()
         file_id = (request.httprequest.form.get("file_id") or "").strip()
         filter_date = self._get_daily_filter_date(request.httprequest.form.get("filter_date"))
+        workspace = request.httprequest.form.get("workspace")
         section_definitions = self._get_daily_section_definitions()
         if section_key not in section_definitions:
             return self._make_daily_json_response(
@@ -1438,7 +1971,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Danh mục này đã có file được duyệt. Không thể gửi phê duyệt thêm.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=approved_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=approved_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(response_payload, status=400)
 
         if file_id:
@@ -1453,7 +1993,14 @@ class TcDataflowReportController(http.Controller):
                     "success": False,
                     "message": "Chỉ file ở trạng thái kiểm tra mới được gửi phê duyệt.",
                 }
-                response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=selected_record))
+                response_payload.update(
+                    self._build_daily_action_response(
+                        section_key,
+                        filter_date,
+                        preview_file=selected_record,
+                        workspace=workspace,
+                    )
+                )
                 return self._make_daily_json_response(response_payload, status=400)
             checking_records = selected_record
         else:
@@ -1464,7 +2011,7 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Không có file nào đang ở trạng thái kiểm tra để gửi phê duyệt trong ngày đã chọn.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date))
+            response_payload.update(self._build_daily_action_response(section_key, filter_date, workspace=workspace))
             return self._make_daily_json_response(response_payload, status=400)
 
         submitted_count = 0
@@ -1485,7 +2032,7 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": configuration_error,
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date))
+            response_payload.update(self._build_daily_action_response(section_key, filter_date, workspace=workspace))
             return self._make_daily_json_response(response_payload, status=400)
 
         if not submitted_count:
@@ -1493,7 +2040,7 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Hệ thống chưa thể tạo yêu cầu phê duyệt cho các file đang kiểm tra.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date))
+            response_payload.update(self._build_daily_action_response(section_key, filter_date, workspace=workspace))
             return self._make_daily_json_response(response_payload, status=400)
 
         message = f"Đã gửi {submitted_count} file sang Approvals từ tab {section_definitions[section_key]['short_label']}."
@@ -1508,6 +2055,7 @@ class TcDataflowReportController(http.Controller):
                 section_key,
                 filter_date,
                 preview_file=checking_records[:1] if checking_records else active_record,
+                workspace=workspace,
             )
         )
         return self._make_daily_json_response(response_payload)
@@ -1517,6 +2065,7 @@ class TcDataflowReportController(http.Controller):
         section_key = (request.httprequest.form.get("section") or "").strip()
         file_id = (request.httprequest.form.get("file_id") or "").strip()
         filter_date = self._get_daily_filter_date(request.httprequest.form.get("filter_date"))
+        workspace = request.httprequest.form.get("workspace")
         if section_key not in self._get_daily_section_definitions() or not file_id:
             return self._make_daily_json_response(
                 {"success": False, "message": "Thông tin phê duyệt không hợp lệ."},
@@ -1535,7 +2084,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "File lỗi dữ liệu nên không thể phê duyệt.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=upload_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(
                 response_payload,
                 status=400,
@@ -1546,7 +2102,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "File này chưa được gửi phê duyệt.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=upload_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(
                 response_payload,
                 status=400,
@@ -1562,7 +2125,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Bạn không có quyền phê duyệt file này.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=upload_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(
                 response_payload,
                 status=403,
@@ -1582,7 +2152,14 @@ class TcDataflowReportController(http.Controller):
                 else f"Đã ghi nhận phê duyệt file {upload_record.name}. Yêu cầu vẫn chờ các bước duyệt còn lại."
             ),
         }
-        response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+        response_payload.update(
+            self._build_daily_action_response(
+                section_key,
+                filter_date,
+                preview_file=upload_record,
+                workspace=workspace,
+            )
+        )
         return self._make_daily_json_response(response_payload)
 
     @http.route("/home/daily/reject", type="http", auth="user", methods=["POST"], csrf=False)
@@ -1590,6 +2167,7 @@ class TcDataflowReportController(http.Controller):
         section_key = (request.httprequest.form.get("section") or "").strip()
         file_id = (request.httprequest.form.get("file_id") or "").strip()
         filter_date = self._get_daily_filter_date(request.httprequest.form.get("filter_date"))
+        workspace = request.httprequest.form.get("workspace")
         if section_key not in self._get_daily_section_definitions() or not file_id:
             return self._make_daily_json_response(
                 {"success": False, "message": "Thông tin từ chối không hợp lệ."},
@@ -1608,7 +2186,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "File này chưa được gửi phê duyệt.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=upload_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(
                 response_payload,
                 status=400,
@@ -1624,7 +2209,14 @@ class TcDataflowReportController(http.Controller):
                 "success": False,
                 "message": "Bạn không có quyền từ chối file này.",
             }
-            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+            response_payload.update(
+                self._build_daily_action_response(
+                    section_key,
+                    filter_date,
+                    preview_file=upload_record,
+                    workspace=workspace,
+                )
+            )
             return self._make_daily_json_response(
                 response_payload,
                 status=403,
@@ -1640,15 +2232,118 @@ class TcDataflowReportController(http.Controller):
             "success": True,
             "message": f"Đã từ chối file {upload_record.name}. Dữ liệu không được đẩy vào database.",
         }
-        response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=upload_record))
+        response_payload.update(
+            self._build_daily_action_response(
+                section_key,
+                filter_date,
+                preview_file=upload_record,
+                workspace=workspace,
+            )
+        )
         return self._make_daily_json_response(response_payload)
 
     @http.route("/home/tam-tinh", type="http", auth="user")
     def thinh_cuong_temporary_report(self, **kwargs):
-        provisional_tab = "upload" if kwargs.get("tab") == "upload" else "list"
+        mode = (kwargs.get("mode") or "").strip()
+        feedback = self._pop_provisional_flash()
+
+        if mode == "import":
+            filter_date = self._get_daily_filter_date(kwargs.get("filter_date"))
+            context = self._build_base_context("temporary", filter_date=filter_date)
+            context.update(self._build_temporary_import_view_context(kwargs.get("section"), filter_date))
+            context.update(
+                {
+                    "report_title": "IMPORT CHỈ TIÊU TẠM TÍNH",
+                    "report_subtitle": "Giữ nguyên giao diện import cũ để tải file, kiểm tra preview và xử lý dữ liệu theo tab chỉ tiêu.",
+                }
+            )
+            return request.render("tc_dataflow_report.thinh_cuong_home_report", context)
+
+        if mode == "create":
+            if kwargs.get("view") == "form" or kwargs.get("entry_id") or kwargs.get("new"):
+                entry = self._get_provisional_entry(kwargs.get("entry_id"))
+                return self._render_provisional_page(entry=entry, feedback=feedback)
+
+            context = self._build_base_context("temporary")
+            context.update(self._build_provisional_list_context())
+            return request.render("tc_dataflow_report.thinh_cuong_temporary_list", context)
+
         context = self._build_base_context("temporary")
-        context.update(self._build_provisional_view_context(provisional_tab))
-        return request.render("tc_dataflow_report.thinh_cuong_temporary_report", context)
+        context.update(self._build_temporary_hub_context())
+        return request.render("tc_dataflow_report.thinh_cuong_temporary_hub", context)
+
+    @http.route("/home/tam-tinh/save", type="http", auth="user", methods=["POST"], csrf=False)
+    def thinh_cuong_temporary_save(self, **kwargs):
+        form_data = self._coerce_provisional_form_data(request.httprequest.form)
+        try:
+            entry = self._save_provisional_entry(form_data)
+        except (UserError, ValidationError) as exc:
+            return self._render_provisional_page(
+                form_data=form_data,
+                feedback={"level": "error", "message": str(exc)},
+                status=400,
+            )
+
+        self._set_provisional_flash("success", "Đã lưu phiếu tạm tính ở trạng thái nháp.")
+        return request.redirect(self._get_provisional_redirect_url(entry))
+
+    @http.route("/home/tam-tinh/calculate", type="http", auth="user", methods=["POST"], csrf=False)
+    def thinh_cuong_temporary_calculate(self, **kwargs):
+        form_data = self._coerce_provisional_form_data(request.httprequest.form)
+        entry = self._get_provisional_entry_model()
+        try:
+            entry = self._save_provisional_entry(form_data)
+            entry.action_calculate()
+        except (UserError, ValidationError) as exc:
+            return self._render_provisional_page(
+                entry=entry if entry else None,
+                form_data=None if entry else form_data,
+                feedback={"level": "error", "message": str(exc)},
+                status=400,
+            )
+
+        self._set_provisional_flash("success", "Đã tính toán preview phân bổ cho phiếu tạm tính.")
+        return request.redirect(self._get_provisional_redirect_url(entry))
+
+    @http.route("/home/tam-tinh/generate", type="http", auth="user", methods=["POST"], csrf=False)
+    def thinh_cuong_temporary_generate(self, **kwargs):
+        form_data = self._coerce_provisional_form_data(request.httprequest.form)
+        entry = self._get_provisional_entry_model()
+        try:
+            entry = self._save_provisional_entry(form_data)
+            entry.action_generate_documents()
+        except (UserError, ValidationError) as exc:
+            return self._render_provisional_page(
+                entry=entry if entry else None,
+                form_data=None if entry else form_data,
+                feedback={"level": "error", "message": str(exc)},
+                status=400,
+            )
+
+        self._set_provisional_flash(
+            "success",
+            "Đã sinh phiếu nháp và dòng hiệu quả kinh doanh từ lịch phân bổ.",
+        )
+        return request.redirect(self._get_provisional_redirect_url(entry))
+
+    @http.route("/home/tam-tinh/post", type="http", auth="user", methods=["POST"], csrf=False)
+    def thinh_cuong_temporary_post(self, **kwargs):
+        form_data = self._coerce_provisional_form_data(request.httprequest.form)
+        entry = self._get_provisional_entry(form_data.get("entry_id"))
+        try:
+            if not entry:
+                raise UserError("Không tìm thấy phiếu tạm tính cần ghi sổ.")
+            entry.action_post_documents()
+        except (UserError, ValidationError) as exc:
+            return self._render_provisional_page(
+                entry=entry if entry else None,
+                form_data=None if entry else form_data,
+                feedback={"level": "error", "message": str(exc)},
+                status=400,
+            )
+
+        self._set_provisional_flash("success", "Đã ghi sổ toàn bộ bút toán của phiếu tạm tính.")
+        return request.redirect(self._get_provisional_redirect_url(entry))
 
     @http.route("/home/ke-hoach", type="http", auth="user")
     def thinh_cuong_plan_report(self, **kwargs):

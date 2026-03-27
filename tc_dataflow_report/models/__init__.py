@@ -2,6 +2,7 @@ from . import account_dimension
 from . import business_segment
 from . import account_business_performance
 from . import approval_request
+from . import tc_provisional_entry
 from . import tc_daily_upload_file
 from . import tc_daily_revenue_line
 from . import tc_daily_cashflow_line

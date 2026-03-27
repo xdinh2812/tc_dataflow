@@ -2,187 +2,520 @@
 <odoo>
     <template id="thinh_cuong_temporary_report" name="TC Temporary Financial Report">
         <t t-call="tc_dataflow_report.thinh_cuong_dashboard_layout">
-            <section class="tc-dashboard-page-heading tc-dashboard-page-heading--temporary">
-                <div class="tc-dashboard-page-heading__copy">
-                    <h2><t t-esc="report_title"/></h2>
-                    <p><t t-esc="report_subtitle"/></p>
-                </div>
-            </section>
+            <section class="tc-temporary-shell" data-provisional-app="1">
+                <form method="post" class="tc-temporary-form">
+                    <input type="hidden" name="entry_id" t-att-value="provisional['entry_id']"/>
+                    <input type="hidden" name="active_tab" value="info" data-provisional-active-tab="1"/>
 
-            <section class="tc-provisional">
-                <div class="tc-provisional-toolbar">
-                    <div class="tc-provisional-tabs">
-                        <a t-foreach="temporary_tabs"
-                           t-as="tab"
-                           t-att-href="tab['href']"
-                           t-attf-class="tc-provisional-tabs__item {{ 'is-active' if tab['active'] else '' }}">
-                            <t t-esc="tab['label']"/>
-                        </a>
-                    </div>
-
-                    <t t-if="provisional_tab == 'list'">
-                        <div class="tc-provisional-toolbar__actions">
-                            <label class="tc-provisional-search">
-                                <span class="material-symbols-outlined">search</span>
-                                <input type="search" t-att-placeholder="temporary_search_placeholder"/>
-                            </label>
-                            <a href="#" class="tc-provisional-submit">
-                                <span class="material-symbols-outlined">send</span>
-                                <t t-esc="temporary_submit_label"/>
-                            </a>
-                        </div>
-                    </t>
-                </div>
-
-                <t t-if="provisional_tab == 'list'">
-                    <section class="tc-provisional-panel">
-                        <div t-foreach="temporary_groups" t-as="group" class="tc-provisional-group">
-                            <div class="tc-provisional-group__title">
-                                <span class="material-symbols-outlined"><t t-esc="group['icon']"/></span>
-                                <span><t t-esc="group['name']"/></span>
+                    <section class="tc-temporary-head">
+                        <div class="tc-temporary-head__copy">
+                            <div class="tc-temporary-breadcrumb">
+                                <span>Tạm tính</span>
+                                <span>/</span>
+                                <strong><t t-esc="provisional['summary']['reference']"/></strong>
                             </div>
-
-                            <div class="tc-dashboard-table-wrap tc-dashboard-table-wrap--provisional">
-                                <table class="tc-dashboard-table tc-dashboard-table--provisional">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>TK Nợ</th>
-                                            <th>TK Có</th>
-                                            <th class="is-right">Số tiền phân bổ (VND)</th>
-                                            <th>Mô tả</th>
-                                            <th>Phiên bản</th>
-                                            <th>Ngày đáo</th>
-                                            <th class="is-right">Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr t-foreach="group['rows']" t-as="row">
-                                            <td><t t-esc="row['id']"/></td>
-                                            <td class="is-strong"><t t-esc="row['debit']"/></td>
-                                            <td class="is-strong"><t t-esc="row['credit']"/></td>
-                                            <td class="is-right tc-provisional-amount"><t t-esc="row['amount']"/></td>
-                                            <td><t t-esc="row['description']"/></td>
-                                            <td><t t-esc="row['version']"/></td>
-                                            <td><t t-esc="row['due_date']"/></td>
-                                            <td class="is-right">
-                                                <button type="button" class="tc-dashboard-table__action">
-                                                    <span class="material-symbols-outlined">visibility</span>
-                                                    <t t-esc="row['action_label']"/>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <h2><t t-esc="report_title"/></h2>
+                            <p><t t-esc="report_subtitle"/></p>
                         </div>
 
-                        <div class="tc-provisional-total">
-                            <span>Tổng cộng:</span>
-                            <strong><t t-esc="temporary_total"/></strong>
-                        </div>
-
-                        <div class="tc-provisional-footer">
-                            <span><t t-esc="temporary_total_records"/></span>
-                            <div class="tc-provisional-pagination">
-                                <button type="button" aria-label="Trang trước">
-                                    <span class="material-symbols-outlined"></span>
+                        <div class="tc-temporary-head__actions">
+                            <a t-att-href="provisional['hub_url']" class="tc-temporary-button tc-temporary-button--ghost">Chọn luồng</a>
+                            <a t-att-href="provisional['list_url']" class="tc-temporary-button tc-temporary-button--ghost">Danh sách</a>
+                            <t t-if="provisional['actions']['can_save']">
+                                <button type="submit"
+                                        formaction="/home/tam-tinh/save"
+                                        formmethod="post"
+                                        class="tc-temporary-button tc-temporary-button--primary"
+                                        data-provisional-save-draft="1"
+                                        hidden="hidden">
+                                    Save draft
                                 </button>
-                                <span class="is-active">1</span>
-                                <button type="button" aria-label="Trang sau">
-                                    <span class="material-symbols-outlined"></span>
-                                </button>
-                            </div>
+                            </t>
                         </div>
                     </section>
-                </t>
 
-                <t t-else="">
-                    <section class="tc-provisional-upload-grid">
-                        <div class="tc-provisional-upload-main">
-                            <div class="tc-provisional-dropzone">
-                                <div class="tc-provisional-dropzone__icon">
-                                    <span class="material-symbols-outlined">cloud_upload</span>
-                                </div>
-                                <strong>Kéo thả tệp tin tại đây</strong>
-                                <p>Hỗ trợ định dạng .xlsx, .csv. Kích thước tối đa 25MB cho mỗi tệp tin.</p>
-                                <div class="tc-provisional-dropzone__actions">
-                                    <button type="button" class="tc-provisional-dropzone__button tc-provisional-dropzone__button--primary">
-                                        <span class="material-symbols-outlined">description</span>
-                                        Chọn tệp từ máy
-                                    </button>
-                                    <button type="button" class="tc-provisional-dropzone__button tc-provisional-dropzone__button--secondary">
-                                        <span class="material-symbols-outlined">rule</span>
-                                        Kiểm tra dữ liệu
-                                    </button>
-                                </div>
-                            </div>
+                    <t t-if="provisional['feedback']">
+                        <div t-attf-class="tc-temporary-feedback is-{{ provisional['feedback']['level'] }}">
+                            <span class="material-symbols-outlined">
+                                <t t-esc="'check_circle' if provisional['feedback']['level'] == 'success' else 'warning'"/>
+                            </span>
+                            <p><t t-esc="provisional['feedback']['message']"/></p>
+                        </div>
+                    </t>
 
-                            <div class="tc-provisional-note-card">
-                                <div class="tc-provisional-note-card__icon">
-                                    <span class="material-symbols-outlined">info</span>
-                                </div>
-                                <div class="tc-provisional-note-card__content">
-                                    <h3>Hướng dẫn &amp; Lưu ý:</h3>
-                                    <p t-foreach="temporary_upload_hint" t-as="hint"><t t-esc="hint"/></p>
-                                    <div class="tc-provisional-note-card__links">
-                                        <a t-foreach="temporary_upload_links" t-as="link" href="#">
-                                            <span class="material-symbols-outlined"><t t-esc="link['icon']"/></span>
-                                            <t t-esc="link['label']"/>
-                                        </a>
+                    <section class="tc-temporary-meta-grid">
+                        <label class="tc-temporary-field-card tc-temporary-field-card--name">
+                            <span class="tc-temporary-field-card__label">Tên chi phí</span>
+                            <input type="text"
+                                   name="name"
+                                   t-att-value="provisional['form']['name']"
+                                   t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"/>
+                        </label>
+
+                        <label class="tc-temporary-field-card tc-temporary-field-card--reference">
+                            <span class="tc-temporary-field-card__label">Mã tham chiếu</span>
+                            <input type="text"
+                                   name="reference"
+                                   readonly="readonly"
+                                   t-att-value="provisional['summary']['reference']"/>
+                        </label>
+
+                        <div class="tc-temporary-field-card tc-temporary-field-card--mode">
+                            <span class="tc-temporary-field-card__label">Loại phân bổ</span>
+                            <div class="tc-temporary-mode-picker" data-provisional-mode-picker="1">
+                                <button type="button"
+                                        class="tc-temporary-mode-picker__current"
+                                        data-provisional-mode-summary="1"
+                                        t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                    <div class="tc-temporary-mode-picker__copy">
+                                        <strong data-provisional-mode-label="1"><t t-esc="provisional['summary']['allocation_type_label']"/></strong>
+                                        <t t-if="provisional['form']['estimate_type'] == 'manual'">
+                                            <p data-provisional-mode-description="1">Chỉ ghi nhận một ngày hạch toán và một số tiền trên một dòng.</p>
+                                        </t>
+                                        <t t-else="">
+                                            <p data-provisional-mode-description="1">Hệ thống chia đều tổng số tiền theo từng ngày trong khoảng đã chọn.</p>
+                                        </t>
                                     </div>
+                                    <span class="material-symbols-outlined">unfold_more</span>
+                                </button>
+
+                                <div class="tc-temporary-mode-switch" data-provisional-mode-options="1">
+                                    <label t-foreach="provisional['options']['allocation_types']"
+                                           t-as="option"
+                                           t-attf-class="tc-temporary-toggle-card {{ 'is-active' if provisional['form']['estimate_type'] == option['value'] else '' }}">
+                                        <input type="radio"
+                                               name="estimate_type"
+                                               t-att-value="option['value']"
+                                               t-att-checked="'checked' if provisional['form']['estimate_type'] == option['value'] else None"
+                                               t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"
+                                               t-att-data-provisional-mode-trigger="option['value']"
+                                               t-att-data-provisional-option-label="option['label']"
+                                               t-att-data-provisional-option-description="option['description']"/>
+                                        <div class="tc-temporary-toggle-card__dot"></div>
+                                        <div>
+                                            <strong><t t-esc="option['label']"/></strong>
+                                            <p><t t-esc="option['description']"/></p>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
                         </div>
 
-                        <aside class="tc-provisional-upload-side">
-                            <section class="tc-provisional-side-card">
-                                <h3>Thao tác cuối</h3>
-                                <a href="#" class="tc-provisional-submit tc-provisional-submit--block">
-                                    <span class="material-symbols-outlined">send</span>
-                                    <t t-esc="temporary_submit_label"/>
-                                </a>
-                                <p>Dữ liệu sẽ được gửi về ban kiểm soát sau khi bạn nhấn nút.</p>
-                            </section>
-
-                            <section class="tc-provisional-side-card">
-                                <h3>Trạng thái tệp</h3>
-                                <div class="tc-provisional-empty-state">
-                                    <span class="material-symbols-outlined">description</span>
-                                    <p>Chưa có tệp nào được tải lên</p>
-                                </div>
-                            </section>
+                        <aside class="tc-temporary-total-card">
+                            <span class="tc-temporary-total-card__eyebrow">Tổng giá trị phân bổ</span>
+                            <strong><t t-esc="provisional['summary']['total_amount']"/></strong>
+                            <small>VND</small>
+                            <div class="tc-temporary-total-card__status">
+                                <span>Trạng thái</span>
+                                <em t-attf-class="tc-temporary-status {{ provisional['summary']['status_class'] }}">
+                                    <t t-esc="provisional['summary']['status_label']"/>
+                                </em>
+                            </div>
                         </aside>
                     </section>
 
-                    <section class="tc-provisional-preview">
-                        <div class="tc-provisional-preview__head">
-                            <h3>Xem trước dữ liệu</h3>
-                            <span>Hiển thị 0 dòng dữ liệu</span>
+                    <section class="tc-temporary-content">
+                        <div class="tc-temporary-main">
+                            <section class="tc-temporary-panel tc-temporary-panel--combined">
+                                <div class="tc-temporary-panel__body">
+                                    <div class="tc-temporary-panel__section-head">
+                                        <div>
+                                            <h3>Cấu hình phiếu tạm tính</h3>
+                                            <p>Thiết lập kế toán trước, sau đó khai báo phạm vi và cách phân bổ để kiểm soát phiếu trên cùng một màn hình.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tc-temporary-config-stack">
+                                        <section class="tc-temporary-config-block">
+                                            <div class="tc-temporary-config-block__head">
+                                                <div>
+                                                    <h4>Kế toán</h4>
+                                                    <p>Nhật ký, tài khoản và diễn giải sẽ được dùng khi sinh bút toán.</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="tc-temporary-form-grid">
+                                                <label class="tc-temporary-control">
+                                                    <span>Nhật ký</span>
+                                                    <select name="journal_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn nhật ký</option>
+                                                        <option t-foreach="provisional['options']['journals']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['journal_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <label class="tc-temporary-control">
+                                                    <span>Tài khoản nợ</span>
+                                                    <select name="debit_account_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn tài khoản nợ</option>
+                                                        <option t-foreach="provisional['options']['accounts']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['debit_account_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <label class="tc-temporary-control">
+                                                    <span>Tài khoản có</span>
+                                                    <select name="credit_account_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn tài khoản có</option>
+                                                        <option t-foreach="provisional['options']['accounts']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['credit_account_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <label class="tc-temporary-control">
+                                                    <span>Diễn giải</span>
+                                                    <input type="text"
+                                                           name="move_label"
+                                                           t-att-value="provisional['form']['move_label']"
+                                                           t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"/>
+                                                </label>
+
+                                                <label class="tc-temporary-control tc-temporary-control--full">
+                                                    <span>Ghi chú</span>
+                                                    <textarea name="note"
+                                                              rows="4"
+                                                              t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"><t t-esc="provisional['form']['note']"/></textarea>
+                                                </label>
+                                            </div>
+                                        </section>
+
+                                        <section class="tc-temporary-config-block">
+                                            <div class="tc-temporary-config-block__head">
+                                                <div>
+                                                    <h4>Thiết lập phân bổ</h4>
+                                                    <p>Khai báo đối tượng chi phí, thời gian và giá trị phân bổ theo loại phân bổ đã chọn.</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="tc-temporary-form-grid">
+                                                <label class="tc-temporary-control">
+                                                    <span>Mảng kinh doanh</span>
+                                                    <select name="business_segment_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn mảng kinh doanh</option>
+                                                        <option t-foreach="provisional['options']['business_segments']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['business_segment_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <label class="tc-temporary-control">
+                                                    <span>Pháp nhân / Công ty</span>
+                                                    <select name="partner_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn pháp nhân</option>
+                                                        <option t-foreach="provisional['options']['partners']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['partner_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <label class="tc-temporary-control">
+                                                    <span>Cost center</span>
+                                                    <select name="cost_center_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn trung tâm chi phí</option>
+                                                        <option t-foreach="provisional['options']['cost_centers']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['cost_center_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <label class="tc-temporary-control">
+                                                    <span>Chiều phân tích</span>
+                                                    <select name="dimension_id"
+                                                            t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None">
+                                                        <option value="">Chọn chiều phân tích</option>
+                                                        <option t-foreach="provisional['options']['dimensions']"
+                                                                t-as="option"
+                                                                t-att-value="option['id']"
+                                                                t-att-selected="'selected' if provisional['form']['dimension_id'] == option['id'] else None">
+                                                            <t t-esc="option['label']"/>
+                                                        </option>
+                                                    </select>
+                                                </label>
+
+                                                <div class="tc-temporary-control-group"
+                                                     data-provisional-mode-panel="auto"
+                                                     t-att-hidden="'hidden' if provisional['form']['estimate_type'] != 'auto' else None">
+                                                    <label class="tc-temporary-control">
+                                                        <span>Ngày bắt đầu</span>
+                                                        <input type="date"
+                                                               name="start_date"
+                                                               t-att-value="provisional['form']['start_date']"
+                                                               t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"/>
+                                                    </label>
+
+                                                    <label class="tc-temporary-control">
+                                                        <span>Ngày kết thúc</span>
+                                                        <input type="date"
+                                                               name="end_date"
+                                                               t-att-value="provisional['form']['end_date']"
+                                                               t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"/>
+                                                    </label>
+                                                </div>
+
+                                                <div class="tc-temporary-control-group tc-temporary-control-group--single"
+                                                     data-provisional-mode-panel="manual"
+                                                     t-att-hidden="'hidden' if provisional['form']['estimate_type'] != 'manual' else None">
+                                                    <label class="tc-temporary-control">
+                                                        <span>Ngày hạch toán</span>
+                                                        <input type="date"
+                                                               name="posting_date"
+                                                               t-att-value="provisional['form']['posting_date']"
+                                                               t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"/>
+                                                    </label>
+                                                </div>
+
+                                                <label class="tc-temporary-control tc-temporary-control--wide">
+                                                    <span>Số tiền (VND)</span>
+                                                    <input type="number"
+                                                           name="total_amount"
+                                                           step="0.01"
+                                                           min="0"
+                                                           t-att-value="provisional['form']['total_amount']"
+                                                           t-att-disabled="'disabled' if provisional['actions']['is_locked'] else None"/>
+                                                </label>
+                                            </div>
+
+                                            <div class="tc-temporary-callout">
+                                                <span class="material-symbols-outlined">info</span>
+                                                <p><t t-esc="provisional['distribution_note']"/></p>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="tc-temporary-preview-panel">
+                                <div class="tc-temporary-preview-panel__head">
+                                    <div>
+                                        <h3>Preview phân bổ dự kiến</h3>
+                                        <p><t t-esc="provisional['preview_count']"/> dòng dự kiến</p>
+                                    </div>
+                                </div>
+
+                                <t t-if="provisional['preview_rows']">
+                                    <div class="tc-dashboard-table-wrap">
+                                        <table class="tc-dashboard-table tc-dashboard-table--preview">
+                                            <thead>
+                                                <tr>
+                                                    <th>Ngày</th>
+                                                    <th class="is-right">Số tiền (VND)</th>
+                                                    <th>Diễn giải</th>
+                                                    <th class="is-right">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="provisional['preview_rows']" t-as="row">
+                                                    <td><t t-esc="row['date']"/></td>
+                                                    <td class="is-right is-strong"><t t-esc="row['amount']"/></td>
+                                                    <td><t t-esc="row['description']"/></td>
+                                                    <td class="is-right">
+                                                        <span t-attf-class="tc-temporary-table-status {{ row['status_class'] }}">
+                                                            <t t-esc="row['status']"/>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="tc-temporary-empty-state">
+                                        <span class="material-symbols-outlined">table_rows</span>
+                                        <p><t t-esc="provisional['preview_empty_message']"/></p>
+                                    </div>
+                                </t>
+                            </section>
                         </div>
+
+                        <aside class="tc-temporary-sidebar">
+                            <section class="tc-temporary-side-card tc-temporary-side-card--actions">
+                                <h3>Luồng xử lý</h3>
+                                <button type="submit"
+                                        formaction="/home/tam-tinh/calculate"
+                                        formmethod="post"
+                                        class="tc-temporary-button tc-temporary-button--secondary"
+                                        t-att-disabled="'disabled' if not provisional['actions']['can_calculate'] else None">
+                                    Tính toán
+                                </button>
+                                <button type="submit"
+                                        formaction="/home/tam-tinh/generate"
+                                        formmethod="post"
+                                        class="tc-temporary-button tc-temporary-button--ghost-dark"
+                                        t-att-disabled="'disabled' if not provisional['actions']['can_generate'] else None">
+                                    Sinh phiếu
+                                </button>
+                                <button type="submit"
+                                        formaction="/home/tam-tinh/post"
+                                        formmethod="post"
+                                        class="tc-temporary-button tc-temporary-button--dark"
+                                        t-att-disabled="'disabled' if not provisional['actions']['can_post'] else None">
+                                    Ghi sổ
+                                </button>
+                            </section>
+
+                            <section class="tc-temporary-side-card">
+                                <h3>Tóm tắt cấu hình</h3>
+                                <dl class="tc-temporary-summary-list">
+                                    <div>
+                                        <dt>Loại phân bổ</dt>
+                                        <dd><t t-esc="provisional['summary']['allocation_type_label']"/></dd>
+                                    </div>
+                                    <div>
+                                        <dt>Khoảng / Ngày</dt>
+                                        <dd><t t-esc="provisional['summary']['period_label']"/></dd>
+                                    </div>
+                                    <div>
+                                        <dt>Số dòng preview</dt>
+                                        <dd><t t-esc="provisional['summary']['line_count']"/></dd>
+                                    </div>
+                                    <div>
+                                        <dt>Số bút toán</dt>
+                                        <dd><t t-esc="provisional['summary']['move_count']"/></dd>
+                                    </div>
+                                </dl>
+                            </section>
+                        </aside>
+                    </section>
+                </form>
+
+                <script type="text/javascript" src="/tc_dataflow_report/static/src/js/temporary_form.js" defer="defer"></script>
+            </section>
+        </t>
+    </template>
+    <template id="thinh_cuong_temporary_hub" name="TC Temporary Hub">
+        <t t-call="tc_dataflow_report.thinh_cuong_dashboard_layout">
+            <section class="tc-temporary-hub">
+                <header class="tc-temporary-hub__head">
+                    <div>
+                        <div class="tc-temporary-breadcrumb">
+                            <span>Tạm tính</span>
+                            <span>/</span>
+                            <strong>Chọn luồng xử lý</strong>
+                        </div>
+                        <h2><t t-esc="report_title"/></h2>
+                        <p><t t-esc="report_subtitle"/></p>
+                    </div>
+                </header>
+
+                <div class="tc-temporary-hub__grid">
+                    <a t-foreach="temporary_hub_cards"
+                       t-as="card"
+                       t-att-href="card['href']"
+                       t-attf-class="tc-temporary-hub-card {{ card['style'] }}">
+                        <div class="tc-temporary-hub-card__icon">
+                            <span class="material-symbols-outlined"><t t-esc="card['icon']"/></span>
+                        </div>
+                        <div class="tc-temporary-hub-card__body">
+                            <h3><t t-esc="card['title']"/></h3>
+                            <p><t t-esc="card['description']"/></p>
+                        </div>
+                        <div class="tc-temporary-hub-card__meta">
+                            <strong><t t-esc="card['count']"/></strong>
+                            <span><t t-esc="card['count_label']"/></span>
+                            <em><t t-esc="card['note']"/></em>
+                        </div>
+                    </a>
+                </div>
+            </section>
+        </t>
+    </template>
+
+    <template id="thinh_cuong_temporary_list" name="TC Temporary List">
+        <t t-call="tc_dataflow_report.thinh_cuong_dashboard_layout">
+            <section class="tc-temporary-list">
+                <header class="tc-temporary-head">
+                    <div class="tc-temporary-head__copy">
+                        <div class="tc-temporary-breadcrumb">
+                            <span>Tạm tính</span>
+                            <span>/</span>
+                            <span>Tạo dữ liệu</span>
+                            <span>/</span>
+                            <strong>Danh sách</strong>
+                        </div>
+                        <h2><t t-esc="report_title"/></h2>
+                        <p><t t-esc="report_subtitle"/></p>
+                    </div>
+
+                    <div class="tc-temporary-head__actions">
+                        <a t-att-href="provisional_list['hub_url']" class="tc-temporary-button tc-temporary-button--ghost">Chọn luồng</a>
+                        <a t-att-href="provisional_list['new_form_url']" class="tc-temporary-button tc-temporary-button--primary">Tạo mới</a>
+                    </div>
+                </header>
+
+                <section class="tc-temporary-list-panel">
+                    <t t-if="provisional_list['rows']">
                         <div class="tc-dashboard-table-wrap">
-                            <table class="tc-dashboard-table tc-dashboard-table--preview">
+                            <table class="tc-dashboard-table">
                                 <thead>
                                     <tr>
-                                        <th t-foreach="temporary_preview_columns" t-as="column">
-                                            <t t-esc="column"/>
-                                        </th>
+                                        <th>Tên chi phí</th>
+                                        <th>Mã tham chiếu</th>
+                                        <th>Loại phân bổ</th>
+                                        <th>Khoảng / Ngày</th>
+                                        <th class="is-right">Tổng tiền</th>
+                                        <th>Cập nhật</th>
+                                        <th class="is-right">Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr class="tc-provisional-empty-row">
-                                        <td t-att-colspan="len(temporary_preview_columns)">
-                                            <div class="tc-provisional-empty-state tc-provisional-empty-state--table">
-                                                <span class="material-symbols-outlined">table_rows</span>
-                                                <p>Chưa có dữ liệu để xem trước</p>
-                                            </div>
+                                    <tr t-foreach="provisional_list['rows']"
+                                        t-as="row"
+                                        class="tc-temporary-list-row"
+                                        t-attf-onclick="window.location.href='{{ row['href'] }}'">
+                                        <td>
+                                            <a t-att-href="row['href']" class="tc-temporary-list-link">
+                                                <strong><t t-esc="row['name']"/></strong>
+                                            </a>
+                                        </td>
+                                        <td><t t-esc="row['reference']"/></td>
+                                        <td><t t-esc="row['allocation_type']"/></td>
+                                        <td><t t-esc="row['period']"/></td>
+                                        <td class="is-right is-strong"><t t-esc="row['total_amount']"/></td>
+                                        <td><t t-esc="row['updated_at']"/></td>
+                                        <td class="is-right">
+                                            <span t-attf-class="tc-temporary-table-status {{ row['status_class'] }}">
+                                                <t t-esc="row['status_label']"/>
+                                            </span>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </section>
-                </t>
+                    </t>
+                    <t t-else="">
+                        <div class="tc-temporary-empty-state">
+                            <span class="material-symbols-outlined">description</span>
+                            <p>Chưa có phiếu tạm tính nào. Tạo mới để bắt đầu nhập và xử lý dữ liệu.</p>
+                        </div>
+                    </t>
+                </section>
             </section>
         </t>
     </template>

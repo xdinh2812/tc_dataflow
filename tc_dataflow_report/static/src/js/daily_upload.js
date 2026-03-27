@@ -29,6 +29,11 @@
         return document.querySelector("[data-selected-date-display]");
     }
 
+    function getWorkspaceMode() {
+        var sectionsRoot = document.querySelector("[data-daily-sections]");
+        return sectionsRoot ? String(sectionsRoot.dataset.dailyWorkspace || "daily") : "daily";
+    }
+
     function getSubmitButton(section) {
         var targetSection = section || getActiveSection();
         return targetSection ? targetSection.querySelector("[data-submit-approval]") : null;
@@ -335,6 +340,7 @@
     function requestFilterState(filterDate) {
         var activeSection = getActiveSection();
         var url = "/home/daily/filter?filter_date=" + encodeURIComponent(filterDate || "");
+        url += "&workspace=" + encodeURIComponent(getWorkspaceMode());
         if (activeSection) {
             setSectionFeedback(activeSection, "Dang cap nhat danh sach file theo ngay tai len...", null);
         }
@@ -365,6 +371,7 @@
         var parsedPage = parseInt(page || "1", 10) || 1;
         var url = "/home/daily/preview?section=" + encodeURIComponent(section.dataset.sectionKey || "") + "&page=" + encodeURIComponent(String(parsedPage));
         url += "&filter_date=" + encodeURIComponent(getCurrentFilterDate());
+        url += "&workspace=" + encodeURIComponent(getWorkspaceMode());
         if (fileId) {
             url += "&file_id=" + encodeURIComponent(String(fileId));
         }
@@ -423,6 +430,7 @@
             var formData = new FormData();
             formData.append("section", section.dataset.sectionKey || "");
             formData.append("filter_date", getCurrentFilterDate());
+            formData.append("workspace", getWorkspaceMode());
             formData.append("file", file);
 
             setUploading(true);
@@ -457,6 +465,7 @@
             formData.append("section", section.dataset.sectionKey || "");
             formData.append("file_id", fileId);
             formData.append("filter_date", getCurrentFilterDate());
+            formData.append("workspace", getWorkspaceMode());
 
             setSectionFeedback(section, pendingMessage, null);
 
@@ -578,6 +587,7 @@
         var formData = new FormData();
         formData.append("section", activeSection.dataset.sectionKey || "");
         formData.append("filter_date", getCurrentFilterDate());
+        formData.append("workspace", getWorkspaceMode());
         setSectionFeedback(activeSection, "Dang gui file sang Approvals...", null);
 
         fetch("/home/daily/submit", {

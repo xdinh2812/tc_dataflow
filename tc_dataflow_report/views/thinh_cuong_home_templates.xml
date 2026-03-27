@@ -33,7 +33,7 @@
                                 </a>
                             </nav>
 
-                            <section class="tc-dashboard-sidebar__section">
+                            <section t-if="show_sidebar_time_filter" class="tc-dashboard-sidebar__section">
                                 <p class="tc-dashboard-sidebar__label">Thời gian</p>
                                 <div class="tc-dashboard-date-card">
                                     <t t-if="sidebar_period_value">
@@ -52,7 +52,7 @@
                                 </div>
                             </section>
 
-                            <section class="tc-dashboard-sidebar__section">
+                            <section t-if="show_sidebar_recent_days" class="tc-dashboard-sidebar__section">
                                 <p class="tc-dashboard-sidebar__label">Thời gian gần đây</p>
                                 <div class="tc-dashboard-timeline" data-recent-days="1">
                                     <article t-foreach="recent_days"
@@ -145,12 +145,23 @@
             <section class="tc-dashboard-header">
                 <div class="tc-dashboard-header__copy">
                     <h2><t t-esc="report_title"/></h2>
+                    <p t-if="report_subtitle" class="tc-dashboard-header__subtitle"><t t-esc="report_subtitle"/></p>
                     <div class="tc-dashboard-header__date">
                         <span>Ngày thực hiện:</span>
                         <button type="button" class="tc-dashboard-date-chip">
                             <span class="material-symbols-outlined">calendar_today</span>
                             <span data-selected-date-display="1"><t t-esc="selected_date_display"/></span>
                         </button>
+                    </div>
+                </div>
+                <div t-if="dashboard_header_actions" class="tc-dashboard-header__actions">
+                    <div class="tc-dashboard-header__action-row">
+                        <a t-foreach="dashboard_header_actions"
+                           t-as="action"
+                           t-att-href="action['href']"
+                           t-att-class="action.get('button_class') or 'tc-temporary-button tc-temporary-button--ghost'">
+                            <t t-esc="action['label']"/>
+                        </a>
                     </div>
                 </div>
             </section>
@@ -168,7 +179,9 @@
                 </button>
             </section>
 
-            <div class="tc-daily-sections" data-daily-sections="1">
+            <div class="tc-daily-sections"
+                 data-daily-sections="1"
+                 t-att-data-daily-workspace="daily_workspace or 'daily'">
                 <section t-foreach="daily_sections"
                          t-as="section"
                          role="tabpanel"

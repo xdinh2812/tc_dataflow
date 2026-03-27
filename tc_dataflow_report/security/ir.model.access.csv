@@ -3,6 +3,8 @@ access_account_dimension,account_dimension,model_account_dimension,base.group_us
 access_account_dimension_value,account_dimension_value,model_account_dimension_value,base.group_user,1,1,1,1
 access_business_segment,business_segment,model_business_segment,base.group_user,1,1,1,1
 access_account_business_performance,account_business_performance,model_account_business_performance,base.group_user,1,1,1,1
+access_tc_provisional_entry,tc_provisional_entry,model_tc_provisional_entry,base.group_user,1,1,1,1
+access_tc_provisional_entry_line,tc_provisional_entry_line,model_tc_provisional_entry_line,base.group_user,1,1,1,1
 access_tc_daily_upload_file,tc_daily_upload_file,model_tc_daily_upload_file,base.group_user,1,1,1,1
 access_tc_daily_revenue_line,tc_daily_revenue_line,model_tc_daily_revenue_line,base.group_user,1,1,1,1
 access_tc_daily_cashflow_line,tc_daily_cashflow_line,model_tc_daily_cashflow_line,base.group_user,1,1,1,1

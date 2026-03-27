@@ -6,6 +6,7 @@
     'data': [
         "security/ir.model.access.csv",
         "data/tc_daily_approval_categories.xml",
+        "data/tc_provisional_sequence.xml",
         'views/account_dimension_views.xml',
         'views/business_segment_views.xml',
         'views/account_business_performance_views.xml',

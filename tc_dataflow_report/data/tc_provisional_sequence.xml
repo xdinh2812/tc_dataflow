@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="seq_tc_provisional_entry" model="ir.sequence">
+        <field name="name">Temporary Entry</field>
+        <field name="code">tc.provisional.entry</field>
+        <field name="prefix">TMP-%(year)s%(month)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>
