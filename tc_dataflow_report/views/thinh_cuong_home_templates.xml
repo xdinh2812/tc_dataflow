@@ -98,29 +98,29 @@
                                            role="menuitem">
                                             <span>Help</span>
                                         </a>
-                                        <div class="tc-dashboard-user-dropdown__item is-static" role="presentation">
-                                            <span>Shortcuts</span>
-                                            <span class="tc-dashboard-user-dropdown__shortcut">CTRL+K</span>
-                                        </div>
+<!--                                        <div class="tc-dashboard-user-dropdown__item is-static" role="presentation">-->
+<!--                                            <span>Shortcuts</span>-->
+<!--                                            <span class="tc-dashboard-user-dropdown__shortcut">CTRL+K</span>-->
+<!--                                        </div>-->
                                         <div class="tc-dashboard-user-dropdown__separator" role="separator"></div>
                                         <div class="tc-dashboard-user-dropdown__item is-static" role="presentation">
                                             <span class="tc-dashboard-user-dropdown__status">
                                                 <span class="tc-dashboard-user-dropdown__status-dot" data-user-menu-status-dot="1"></span>
                                                 <span data-user-menu-status-label="1">Online</span>
                                             </span>
-                                            <span class="material-symbols-outlined tc-dashboard-user-dropdown__arrow">chevron_right</span>
+<!--                                            <span class="material-symbols-outlined tc-dashboard-user-dropdown__arrow">chevron_right</span>-->
                                         </div>
-                                        <a class="tc-dashboard-user-dropdown__item"
-                                           href="/odoo/action-base.action_res_users_my"
-                                           role="menuitem">
-                                            <span>My Preferences</span>
-                                        </a>
-                                        <button type="button"
-                                                class="tc-dashboard-user-dropdown__item"
-                                                data-user-menu-account="1"
-                                                role="menuitem">
-                                            <span>My Odoo.com Account</span>
-                                        </button>
+<!--                                        <a class="tc-dashboard-user-dropdown__item"-->
+<!--                                           href="/odoo/action-base.action_res_users_my"-->
+<!--                                           role="menuitem">-->
+<!--                                            <span>My Preferences</span>-->
+<!--                                        </a>-->
+<!--                                        <button type="button"-->
+<!--                                                class="tc-dashboard-user-dropdown__item"-->
+<!--                                                data-user-menu-account="1"-->
+<!--                                                role="menuitem">-->
+<!--                                            <span>My Odoo.com Account</span>-->
+<!--                                        </button>-->
                                         <a class="tc-dashboard-user-dropdown__item"
                                            href="/web/session/logout?redirect=%2Fweb%2Flogin%3Fredirect%3D%2Fhome"
                                            role="menuitem">
@@ -153,14 +153,6 @@
                         </button>
                     </div>
                 </div>
-
-                <div class="tc-dashboard-header__actions">
-                    <button type="button" class="tc-dashboard-submit" data-submit-approval="1">
-                        <span class="material-symbols-outlined">play_arrow</span>
-                        Gửi phê duyệt
-                    </button>
-                    <p class="tc-dashboard-submit__hint" data-submit-hint="1"></p>
-                </div>
             </section>
 
             <section class="tc-dashboard-tabs" data-daily-tabs="1" role="tablist" aria-label="Daily report tabs">
@@ -182,8 +174,10 @@
                          role="tabpanel"
                          t-att-id="'tc-daily-panel-' + section['key']"
                          t-att-data-section-key="section['key']"
-                         t-att-data-checking-count="section['checking_count']"
-                         t-att-data-section-label="section['short_label']"
+                          t-att-data-checking-count="section['checking_count']"
+                          t-att-data-section-label="section['short_label']"
+                         t-att-data-hide-upload-zone="'1' if section['hide_upload_zone'] else '0'"
+                         t-att-data-current-file-id="section['current_file_id']"
                          t-att-aria-hidden="'false' if section['active'] else 'true'"
                          t-att-hidden="None if section['active'] else 'hidden'"
                          t-attf-class="tc-daily-section {{ 'is-active' if section['active'] else '' }}">
@@ -240,7 +234,10 @@
                         </div>
                     </section>
 
-                    <section class="tc-dashboard-dropzone" data-upload-zone="1" tabindex="0">
+                    <section class="tc-dashboard-dropzone"
+                             data-upload-zone="1"
+                             tabindex="0"
+                             t-att-hidden="'hidden' if section['hide_upload_zone'] else None">
                         <input class="tc-dashboard-upload-input"
                                type="file"
                                accept=".xlsx,.xlsm"
@@ -249,8 +246,8 @@
                             <span class="material-symbols-outlined">cloud_upload</span>
                         </div>
                         <strong>Kéo thả file Excel vào đây hoặc <span>chọn file từ máy</span></strong>
-                        <p>Hỗ trợ .xlsx, .xlsm và tối đa 10MB.</p>
-                        <button type="button" class="tc-dashboard-dropzone__button" data-upload-trigger="1">Chọn file Excel</button>
+                        <p>Hỗ trợ .xlsx, .xlsm</p>
+                        <button type="button" class="tc-dashboard-dropzone__button" data-upload-trigger="1"></button>
                         <p class="tc-dashboard-upload-feedback" data-upload-feedback="1" hidden="hidden"></p>
                     </section>
 

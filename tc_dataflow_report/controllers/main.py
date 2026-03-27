@@ -324,6 +324,17 @@ class TcDataflowReportController(http.Controller):
         is_open = str(current_file_id or "") == str(upload_record.id)
         can_review = upload_record.can_user_review(request.env.user)
 
+        if upload_record.status == "checking":
+            actions.append(
+                {
+                    "key": "submit",
+                    "label": "Gửi phê duyệt",
+                    "icon": "send",
+                    "style": "primary",
+                    "disabled": False,
+                }
+            )
+
         if upload_record.status == "pending_approval" and can_review:
             actions.append(
                 {
@@ -390,20 +401,45 @@ class TcDataflowReportController(http.Controller):
         records._sync_with_approval_request()
         return records
 
+    def _get_daily_active_record(self, upload_records):
+        return upload_records.filtered(lambda record: record.status != "rejected")[:1]
+
+    def _get_daily_approved_record(self, upload_records):
+        return upload_records.filtered(lambda record: record.status == "approved")[:1]
+
+    def _get_daily_preview_record(self, upload_records, preview_file=None):
+        if preview_file:
+            return preview_file
+        approved_record = self._get_daily_approved_record(upload_records)
+        return approved_record if approved_record else self._get_daily_upload_model()
+
     def _build_daily_sections(self, filter_date=None):
         sections = {}
         for key, definition in self._get_daily_section_definitions().items():
             upload_records = self._get_daily_upload_records(key, filter_date=filter_date)
+            active_record = self._get_daily_active_record(upload_records)
+            approved_record = self._get_daily_approved_record(upload_records)
+            preview_record = self._get_daily_preview_record(upload_records)
+            preview_payload = self._build_daily_preview_payload(
+                (preview_record.preview_columns if preview_record else []) or [],
+                (preview_record.preview_rows if preview_record else []) or [],
+                page=1,
+            )
             sections[key] = {
                 "label": definition["label"],
                 "short_label": definition["short_label"],
-                "uploaded_files_title": f"Uploaded Files List - {definition['short_label']}",
-                "preview_title": f"Data Preview - {definition['short_label']}",
-                "uploaded_files": [self._build_daily_file_entry(record) for record in upload_records],
-                "preview_columns": [],
-                "preview_rows": [],
-                "preview_pagination": self._build_daily_preview_payload([], [], page=1)["preview_pagination"],
+                "uploaded_files_title": f"Danh sách file đã tải lên - {definition['short_label']}",
+                "preview_title": f"Xem trước dữ liệu - {definition['short_label']}",
+                "uploaded_files": [
+                    self._build_daily_file_entry(record, current_file_id=preview_record.id if preview_record else None)
+                    for record in upload_records
+                ],
+                "preview_columns": preview_payload["preview_columns"],
+                "preview_rows": preview_payload["preview_rows"],
+                "preview_pagination": preview_payload["preview_pagination"],
                 "checking_count": len(upload_records.filtered(lambda record: record.status == "checking")),
+                "hide_upload_zone": bool(active_record),
+                "current_file_id": str(preview_record.id) if preview_record else "",
             }
         return sections
 
@@ -683,8 +719,9 @@ class TcDataflowReportController(http.Controller):
         return record
 
     def _build_daily_section_response(self, section_key, preview_file=None, page=1, filter_date=None):
-        preview_record = preview_file if preview_file else self._get_daily_upload_model()
         upload_records = self._get_daily_upload_records(section_key, filter_date=filter_date)
+        preview_record = self._get_daily_preview_record(upload_records, preview_file=preview_file)
+        active_record = self._get_daily_active_record(upload_records)
         preview_payload = self._build_daily_preview_payload(
             (preview_record.preview_columns if preview_record else []) or [],
             (preview_record.preview_rows if preview_record else []) or [],
@@ -697,6 +734,7 @@ class TcDataflowReportController(http.Controller):
             ],
             "current_file_id": str(preview_record.id) if preview_record else "",
             "checking_count": len(upload_records.filtered(lambda record: record.status == "checking")),
+            "hide_upload_zone": bool(active_record),
         }
         response_payload.update(preview_payload)
         return response_payload
@@ -949,6 +987,8 @@ class TcDataflowReportController(http.Controller):
                     "preview_rows": section["preview_rows"],
                     "preview_pagination": section["preview_pagination"],
                     "checking_count": section["checking_count"],
+                    "hide_upload_zone": section["hide_upload_zone"],
+                    "current_file_id": section["current_file_id"],
                 }
             )
 
@@ -1279,6 +1319,17 @@ class TcDataflowReportController(http.Controller):
                 status=400,
             )
 
+        active_record = self._get_daily_active_record(
+            self._get_daily_upload_records(section_key, limit=None, filter_date=filter_date)
+        )
+        if active_record:
+            response_payload = {
+                "success": False,
+                "message": "Danh mục này đã có file đang xử lý. Chỉ khi file bị từ chối mới được tải file khác.",
+            }
+            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=active_record))
+            return self._make_daily_json_response(response_payload, status=400)
+
         if not file_storage or not file_storage.filename:
             response_payload = {
                 "success": False,
@@ -1370,6 +1421,7 @@ class TcDataflowReportController(http.Controller):
     @http.route("/home/daily/submit", type="http", auth="user", methods=["POST"], csrf=False)
     def thinh_cuong_daily_submit(self, **kwargs):
         section_key = (request.httprequest.form.get("section") or "").strip()
+        file_id = (request.httprequest.form.get("file_id") or "").strip()
         filter_date = self._get_daily_filter_date(request.httprequest.form.get("filter_date"))
         section_definitions = self._get_daily_section_definitions()
         if section_key not in section_definitions:
@@ -1379,7 +1431,34 @@ class TcDataflowReportController(http.Controller):
             )
 
         upload_records = self._get_daily_upload_records(section_key, limit=None, filter_date=filter_date)
-        checking_records = upload_records.filtered(lambda record: record.status == "checking")
+        active_record = self._get_daily_active_record(upload_records)
+        approved_record = self._get_daily_approved_record(upload_records)
+        if approved_record:
+            response_payload = {
+                "success": False,
+                "message": "Danh mục này đã có file được duyệt. Không thể gửi phê duyệt thêm.",
+            }
+            response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=approved_record))
+            return self._make_daily_json_response(response_payload, status=400)
+
+        if file_id:
+            selected_record = self._get_daily_upload_record(section_key, file_id)
+            if not selected_record:
+                return self._make_daily_json_response(
+                    {"success": False, "message": "Không tìm thấy file cần gửi phê duyệt."},
+                    status=404,
+                )
+            if selected_record.status != "checking":
+                response_payload = {
+                    "success": False,
+                    "message": "Chỉ file ở trạng thái kiểm tra mới được gửi phê duyệt.",
+                }
+                response_payload.update(self._build_daily_action_response(section_key, filter_date, preview_file=selected_record))
+                return self._make_daily_json_response(response_payload, status=400)
+            checking_records = selected_record
+        else:
+            checking_records = upload_records.filtered(lambda record: record.status == "checking")
+
         if not checking_records:
             response_payload = {
                 "success": False,
@@ -1424,7 +1503,13 @@ class TcDataflowReportController(http.Controller):
             "success": True,
             "message": message,
         }
-        response_payload.update(self._build_daily_action_response(section_key, filter_date))
+        response_payload.update(
+            self._build_daily_action_response(
+                section_key,
+                filter_date,
+                preview_file=checking_records[:1] if checking_records else active_record,
+            )
+        )
         return self._make_daily_json_response(response_payload)
 
     @http.route("/home/daily/approve", type="http", auth="user", methods=["POST"], csrf=False)

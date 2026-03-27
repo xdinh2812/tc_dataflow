@@ -29,12 +29,9 @@
         return document.querySelector("[data-selected-date-display]");
     }
 
-    function getSubmitButton() {
-        return document.querySelector("[data-submit-approval]");
-    }
-
-    function getSubmitHint() {
-        return document.querySelector("[data-submit-hint]");
+    function getSubmitButton(section) {
+        var targetSection = section || getActiveSection();
+        return targetSection ? targetSection.querySelector("[data-submit-approval]") : null;
     }
 
     function getActiveSection() {
@@ -47,6 +44,7 @@
             section._tcDailyUploadState = {
                 files: [],
                 checkingCount: parseInt(section.dataset.checkingCount || "0", 10) || 0,
+                hideUploadZone: section.dataset.hideUploadZone === "1",
                 openFileId: "",
                 preview: {
                     page: pagination ? parseInt(pagination.dataset.previewPage || "1", 10) || 1 : 1,
@@ -107,25 +105,34 @@
 
     function updateSubmitState() {
         var activeSection = getActiveSection();
-        var submitButton = getSubmitButton();
-        var submitHint = getSubmitHint();
-        if (!submitButton || !submitHint) {
-            return;
-        }
-
         if (!activeSection) {
-            submitButton.disabled = true;
-            submitHint.textContent = "";
             return;
         }
 
-        var state = getSectionState(activeSection);
-        var checkingCount = state.checkingCount || parseInt(activeSection.dataset.checkingCount || "0", 10) || 0;
-        var sectionLabel = activeSection.dataset.sectionLabel || "tab hien tai";
-        submitButton.disabled = checkingCount <= 0;
-        // submitHint.textContent = checkingCount > 0
-        //     ? "Co " + String(checkingCount) + " file dang kiem tra tai " + sectionLabel + "."
-        //     : "Khong co file nao dang kiem tra tai " + sectionLabel + ".";
+        getSections().forEach(function (section) {
+            var submitButton = getSubmitButton(section);
+            if (!submitButton) {
+                return;
+            }
+            var state = getSectionState(section);
+            var checkingCount = state.checkingCount || parseInt(section.dataset.checkingCount || "0", 10) || 0;
+            submitButton.disabled = state.hideUploadZone || checkingCount <= 0;
+        });
+    }
+
+    function renderUploadZone(section, hideUploadZone) {
+        var zone = section.querySelector("[data-upload-zone]");
+        var state = getSectionState(section);
+        var submitButton = getSubmitButton(section);
+        if (!zone) {
+            return;
+        }
+        state.hideUploadZone = !!hideUploadZone;
+        section.dataset.hideUploadZone = state.hideUploadZone ? "1" : "0";
+        zone.hidden = state.hideUploadZone;
+        if (submitButton) {
+            submitButton.disabled = state.hideUploadZone || state.checkingCount <= 0;
+        }
     }
 
     function renderUploadedFiles(section, files, checkingCount) {
@@ -289,6 +296,7 @@
     function applySectionPayload(section, payload) {
         var state = getSectionState(section);
         state.openFileId = payload.current_file_id ? String(payload.current_file_id) : "";
+        renderUploadZone(section, payload.hide_upload_zone);
         renderUploadedFiles(section, payload.uploaded_files || [], payload.checking_count);
         renderPreview(section, payload.preview_columns || [], payload.preview_rows || [], payload.preview_pagination || null);
     }
@@ -379,9 +387,6 @@
                 setSectionFeedback(section, "Khong the tai preview luc nay.", "error");
             })
             .finally(function () {
-                if (!fileId) {
-                    state.openFileId = "";
-                }
                 setPreviewLoading(section, false);
             });
     }
@@ -503,6 +508,10 @@
                 }
 
                 event.preventDefault();
+                if (actionButton.dataset.actionKey === "submit") {
+                    reviewFile(actionButton.dataset.fileId, "/home/daily/submit", "Dang gui file sang Approvals...", "Da gui phe duyet file.");
+                    return;
+                }
                 if (actionButton.dataset.actionKey === "approve") {
                     reviewFile(actionButton.dataset.fileId, "/home/daily/approve", "Dang phe duyet file...", "Da phe duyet file.");
                     return;
@@ -589,25 +598,27 @@
     function initDailyUploads() {
         var sections = getSections();
         var filterInput = getFilterInput();
-        var submitButton = getSubmitButton();
         if (!sections.length) {
             return;
         }
-        sections.forEach(initUploadSection);
-
-        if (filterInput) {
-            filterInput.addEventListener("change", function () {
-                requestFilterState(filterInput.value || "");
-            });
-        }
-
-        if (submitButton) {
+        sections.forEach(function (section) {
+            initUploadSection(section);
+            var submitButton = getSubmitButton(section);
+            if (!submitButton) {
+                return;
+            }
             submitButton.addEventListener("click", function (event) {
                 event.preventDefault();
                 if (submitButton.disabled) {
                     return;
                 }
                 requestSubmitApproval();
+            });
+        });
+
+        if (filterInput) {
+            filterInput.addEventListener("change", function () {
+                requestFilterState(filterInput.value || "");
             });
         }
 
